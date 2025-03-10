@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"gospell/internal"
+	"os"
 	"strings"
 
-	"github.com/amitybell/piper"
-	alan "github.com/amitybell/piper-voice-alan"
+	texttospeech "cloud.google.com/go/texttospeech/apiv1"
+	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
 	"github.com/tjarratt/babble"
+	"google.golang.org/api/option"
 )
 
 func main() {
@@ -17,42 +20,33 @@ func main() {
 	// generate a quiz based on that level.
 	// the program will also keep track of the user's progress, and provide feedback
 	// on their performance.
-
 	fmt.Println("gospell - a spelling quiz program")
 
-	var babbler = babble.NewBabbler()
-	babbler.Count = 1
+	// start the tts client
+	ctx := context.Background()
+	client, err := texttospeech.NewClient(ctx, option.WithCredentialsFile("/Users/25jaso/Library/.jack/secret.json"))
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create client: %v", err))
+	}
+	defer client.Close()
 
-    tts, err := piper.New("", alan.Asset)
-    if err != nil {
-        panic(err)
-    }
+	var babbler = babble.NewBabbler() // babbler gets a random word from /usr/share/dict/words
+	babbler.Count = 1 
+	var userInput string
+	var word string
 
-    var userInput string
-    var word string
-
-	for true {
-        word = babbler.Babble()
-
+	for true { // infinite loop (why does go not have while loops?)
+		word = babbler.Babble()
 		// this is true if it contains no special characters and is all lowercase
 		wordIsAcceptable := !strings.ContainsAny(word, "-_'") && internal.IsLower(word)
-
 		for !wordIsAcceptable {
 			if !wordIsAcceptable {
 				word = babbler.Babble()
-
 				wordIsAcceptable = !strings.ContainsAny(word, "-_'") && internal.IsLower(word)
 			}
 		}
 
-		wav, err := tts.Synthesize(word)
-		if err != nil {
-			panic(err)
-		}
-        
-		if err := internal.PlayWav(wav); err != nil {
-			panic(err)
-		}
+        sayWord(ctx, *client, word)
 
 		fmt.Scan(&userInput) // this is temporary, we will use a TUI later
 
@@ -66,9 +60,55 @@ func main() {
 			fmt.Printf("The correct spelling is: %s\n", word)
 		}
 
-		// get the user's input
-
-		// check the user's input against the correct spelling
 		// provide feedback on the user's performance
 	}
+}
+
+func sayWord(ctx context.Context, client texttospeech.Client, word string) {
+    // call tts api
+    audioContent, err := synthesizeSpeech(ctx, &client, word)
+    if err != nil {
+        panic(fmt.Sprintf("Failed to synthesize speech: %v", err))
+    }
+
+    // save audio to temporary file
+    tempFile := "temp.wav"
+    if err := os.WriteFile(tempFile, audioContent, 0644 ); err != nil {
+        panic(fmt.Sprintf("Failed to write audio content to file: %v", err))
+    }
+
+    // Play the audio
+    if err := internal.PlayWav(tempFile); err != nil {
+        panic(err)
+    }
+}
+
+// synthesizeSpeech calls the Google Cloud Text-to-Speech API to generate speech
+func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text string) ([]byte, error) {
+	// set up request
+	req := texttospeechpb.SynthesizeSpeechRequest{
+		Input: &texttospeechpb.SynthesisInput{
+			InputSource: &texttospeechpb.SynthesisInput_Text{
+				Text: text,
+			},
+		},
+		// configure voice
+		Voice: &texttospeechpb.VoiceSelectionParams{
+			LanguageCode: "en-US",
+			Name:         "en-US-Neural2-J", // lowkey just picked this one for fun
+			SsmlGender:   texttospeechpb.SsmlVoiceGender_MALE,
+		},
+		// Configure the audio output
+		AudioConfig: &texttospeechpb.AudioConfig{
+			AudioEncoding: texttospeechpb.AudioEncoding_LINEAR16, // WAV format
+		},
+	}
+
+	// Call the API
+	resp, err := client.SynthesizeSpeech(ctx, &req) // this is confusing but it is two diff functions
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.AudioContent, nil
 }

@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"bytes"
+	"os"
 	"time"
 	"unicode"
 
@@ -9,15 +9,6 @@ import (
 	"github.com/gopxl/beep/speaker"
 	"github.com/gopxl/beep/wav"
 )
-
-func IsUpper(s string) bool {
-    for _, r := range s {
-        if !unicode.IsUpper(r) && unicode.IsLetter(r) {
-            return false
-        }
-    }
-    return true
-}
 
 func IsLower(s string) bool {
     for _, r := range s {
@@ -28,8 +19,13 @@ func IsLower(s string) bool {
     return true
 }
 
-func PlayWav(wavBytes []byte) error {
-	f := bytes.NewReader(wavBytes)
+func PlayWav(filepath string) error {
+    f, err := os.Open(filepath)
+    if err != nil {
+        return err
+    }
+    defer f.Close();
+
 	streamer, format, err := wav.Decode(f)
 	if err != nil {
 		return err
