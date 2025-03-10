@@ -1,0 +1,48 @@
+package internal
+
+import (
+	"bytes"
+	"time"
+	"unicode"
+
+	"github.com/gopxl/beep"
+	"github.com/gopxl/beep/speaker"
+	"github.com/gopxl/beep/wav"
+)
+
+func IsUpper(s string) bool {
+    for _, r := range s {
+        if !unicode.IsUpper(r) && unicode.IsLetter(r) {
+            return false
+        }
+    }
+    return true
+}
+
+func IsLower(s string) bool {
+    for _, r := range s {
+        if !unicode.IsLower(r) && unicode.IsLetter(r) {
+            return false
+        }
+    }
+    return true
+}
+
+func PlayWav(wavBytes []byte) error {
+	f := bytes.NewReader(wavBytes)
+	streamer, format, err := wav.Decode(f)
+	if err != nil {
+		return err
+	}
+	defer streamer.Close()
+
+	sr := format.SampleRate
+	speaker.Init(sr, sr.N(time.Second/10))
+
+	done := make(chan bool)
+	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
+		done <- true
+	})))
+	<-done
+	return nil
+}
