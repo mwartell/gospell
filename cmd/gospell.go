@@ -2,12 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"gospell/internal"
-	"io"
-	"log"
-	"net/http"
 	"os"
 	"strings"
 
@@ -39,14 +35,12 @@ func main() {
 
 	var userInput string
 	var word string
-	var responseObject Welcome
 
 	for true { // infinite loop (why does go not have while loops?)
-        word = getAcceptableWord(babbler)
+		word = getAcceptableWord(babbler)
+		responseObject := internal.GetResponse(&word)
 
-		responseObject = getResponse(&word)
-
-		printDefinition(responseObject)
+		internal.PrintDefinition(responseObject)
 		sayWord(ctx, *client, word)
 
 		fmt.Scan(&userInput) // this is temporary, we will use a TUI later
@@ -75,8 +69,10 @@ func getAcceptableWord(babbler babble.Babbler) string {
 	}
 }
 
+// isAcceptableWord checks if a word is acceptable for the quiz
+// acceptable words are lowercase and contain no special characters & are defined in the dictionary
 func isAcceptableWord(word string) bool {
-	return !strings.ContainsAny(word, "-_'") && internal.IsLower(&word) && isDefined(getResponse(&word))
+	return !strings.ContainsAny(word, "-_'") && internal.IsLower(&word) && internal.IsDefined(internal.GetResponse(&word))
 }
 
 func sayWord(ctx context.Context, client texttospeech.Client, word string) {
@@ -126,89 +122,4 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 	}
 
 	return resp.AudioContent, nil
-}
-
-type Welcome []WelcomeElement
-
-func UnmarshalWelcome(data []byte) (Welcome, error) {
-	var r Welcome
-	err := json.Unmarshal(data, &r)
-	return r, err
-}
-
-func (r *Welcome) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-type WelcomeElement struct {
-	Word       string     `json:"word"`
-	Phonetic   string     `json:"phonetic"`
-	Phonetics  []Phonetic `json:"phonetics"`
-	Meanings   []Meaning  `json:"meanings"`
-	License    License    `json:"license"`
-	SourceUrls []string   `json:"sourceUrls"`
-}
-
-type License struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-}
-
-type Meaning struct {
-	PartOfSpeech string       `json:"partOfSpeech"`
-	Definitions  []Definition `json:"definitions"`
-	Synonyms     []any        `json:"synonyms"`
-	Antonyms     []any        `json:"antonyms"`
-}
-
-type Definition struct {
-	Definition string  `json:"definition"`
-	Synonyms   []any   `json:"synonyms"`
-	Antonyms   []any   `json:"antonyms"`
-	Example    *string `json:"example,omitempty"`
-}
-
-type Phonetic struct {
-	Text      string   `json:"text"`
-	Audio     string   `json:"audio"`
-	SourceURL *string  `json:"sourceUrl,omitempty"`
-	License   *License `json:"license,omitempty"`
-}
-
-func getResponse(word *string) Welcome {
-	response, err := http.Get("https://api.dictionaryapi.dev/api/v2/entries/en/" + *word)
-	if err != nil {
-		fmt.Print(err.Error())
-		os.Exit(1)
-	}
-
-	responseData, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	responseObject, err := UnmarshalWelcome(responseData)
-
-	json.Unmarshal(responseData, &responseObject)
-
-	return responseObject
-}
-
-// isDefined checks if a word is defined in the dictionary
-func isDefined(responseObject Welcome) bool {
-	if len(responseObject) == 0 {
-		return false
-	}
-	if len(responseObject[0].Meanings) == 0 {
-		return false
-	} else {
-		return true
-	}
-}
-
-func printDefinition(responseObject Welcome) {
-	if len(responseObject) == 0 {
-		fmt.Println("No definition found.")
-		return
-	}
-	fmt.Println(responseObject[0].Meanings[0].Definitions[0].Definition)
 }
