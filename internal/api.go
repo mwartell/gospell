@@ -10,8 +10,8 @@ import (
 	"github.com/gopxl/beep/wav"
 )
 
-func IsLower(s string) bool {
-    for _, r := range s {
+func IsLower(s *string) bool {
+    for _, r := range *s {
         if !unicode.IsLower(r) && unicode.IsLetter(r) {
             return false
         }
