@@ -1,4 +1,4 @@
-package internal
+package api
 
 import (
 	"os"
@@ -33,7 +33,7 @@ func PlayWav(filepath string) error {
 	defer streamer.Close()
 
 	sr := format.SampleRate
-	speaker.Init(sr, sr.N(time.Second/10))
+    speaker.Init(sr, sr.N(time.Second/10))
 
 	done := make(chan bool)
 	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
