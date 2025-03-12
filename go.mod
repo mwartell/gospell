@@ -4,6 +4,7 @@ go 1.24.1
 
 require (
 	cloud.google.com/go/texttospeech v1.11.1
+	github.com/coocood/freecache v1.2.4
 	github.com/gopxl/beep v1.4.1
 	github.com/tjarratt/babble v0.0.0-20210505082055-cbca2a4833c1
 	google.golang.org/api v0.224.0
@@ -15,6 +16,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	cloud.google.com/go/longrunning v0.6.4 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/ebitengine/oto/v3 v3.3.2 // indirect
 	github.com/ebitengine/purego v0.8.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
