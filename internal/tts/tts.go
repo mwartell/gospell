@@ -3,7 +3,7 @@ package tts
 import (
 	"context"
 	"fmt"
-    "gospell/internal/api"
+	"gospell/internal/api"
 	"os"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
@@ -22,6 +22,7 @@ func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 	if err := os.WriteFile(tempFile, audioContent, 0644); err != nil {
 		panic(fmt.Sprintf("Failed to write audio content to file: %v", err))
 	}
+    defer os.Remove(tempFile)
 
 	// Play the audio
 	if err := api.PlayWav(tempFile); err != nil {
@@ -58,4 +59,3 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 
 	return resp.AudioContent, nil
 }
-

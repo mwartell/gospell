@@ -30,6 +30,7 @@ func main() {
 	fmt.Println("gospell - a spelling quiz program")
 
 	credentialFlag := flag.String("credentials", "", "Path to Google Cloud credentials JSON file")
+    numDefinitionsFlag := flag.Int("definitions", 1, "Number of definitions to display")
 
 	flag.Parse()
 
@@ -49,7 +50,7 @@ func main() {
 
 	go func() { // signal handler
 		sig := <-sigs
-		fmt.Printf("Received signal: %s\n", sig)
+		fmt.Printf("\nReceived %s signal:\n", sig)
 
 		// Save the cache before exiting
 		fmt.Println("Saving cache before exit...")
@@ -70,7 +71,6 @@ func main() {
 		if err != nil {
 			log.Fatal("Bad credentials file")
 		}
-		fmt.Println("Using credentials file:", *credentialFlag)
 	} else {
 		log.Fatal("No credentials file provided")
 	}
@@ -80,7 +80,7 @@ func main() {
 		responseObject := definition.GetResponse(word)
 		definition.SaveCache(&wordsWithoutDefinitions)
 
-		go definition.PrintDefinition(responseObject)
+		go definition.PrintDefinition(responseObject, *numDefinitionsFlag)
 		go tts.SayWord(ctx, *client, word)
 
 		handleUserInput(ctx, client, word)
@@ -88,44 +88,38 @@ func main() {
 }
 
 func handleUserInput(ctx context.Context, client *texttospeech.Client, word string) {
-	var userInput string
-
-	fmt.Scan(&userInput)
-
-	if userInput == "/r" {
-		tts.SayWord(ctx, *client, word)
-		handleUserInput(ctx, client, word)
-		return
-	} else if userInput == "/c" {
-		for key, value := range wordsWithoutDefinitions {
-			fmt.Println("Key:", key, "Value:", value)
-		}
-		return
-	} else if userInput == "/q" {
-		definition.SaveCache(&wordsWithoutDefinitions)
-		os.Exit(0)
-	}
-
-	if userInput == word {
-		fmt.Println("Correct!")
-	} else {
-		fmt.Println("Incorrect.")
-		// this will be a function that will provide the correct spelling with error highlighting
-		// for now, we will just print the correct spelling
-		fmt.Printf("You typed: %s\n", userInput)
-		fmt.Printf("The correct spelling is: %s\n", word)
-	}
-
+    for {
+        var userInput string
+        fmt.Scan(&userInput)
+        
+        switch userInput {
+        case "/r":
+            tts.SayWord(ctx, *client, word)
+            continue
+        case "/q":
+            definition.SaveCache(&wordsWithoutDefinitions)
+            os.Exit(0)
+        }
+        
+        // Process answer
+        if userInput == word {
+            fmt.Println("Correct!")
+        } else {
+            fmt.Println("Incorrect.")
+            fmt.Printf("You typed: %s\n", userInput)
+            fmt.Printf("The correct spelling is: %s\n", word)
+        }
+        return
+    }
 }
 
 func getAcceptableWord(babbler babble.Babbler) string {
-	word := babbler.Babble()
-
-	if isAcceptableWord(word) {
-		return word
-	} else {
-		return getAcceptableWord(babbler)
-	}
+    for {
+        word := babbler.Babble()
+        if isAcceptableWord(word) {
+            return word
+        }
+    }
 }
 
 // Acceptable words are lowercase and contain no special characters & are defined in the dictionary
