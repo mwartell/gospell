@@ -8,7 +8,10 @@ import (
 	"gospell/internal/definition"
 	"gospell/internal/tts"
 	"log"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"github.com/tjarratt/babble"
@@ -33,13 +36,31 @@ func main() {
 	var babbler = babble.NewBabbler() // babbler gets a random word from /usr/share/dict/words
 	babbler.Count = 1
 
-	// start the tts client
+	sigs := make(chan os.Signal, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
+	defer cancel()
 	client := &texttospeech.Client{}
 
-    // load the cache
-    wordsWithoutDefinitions = definition.LoadCache("/Users/25jaso/.cache/gospell/cache")
+	// load the cache
+	wordsWithoutDefinitions = definition.LoadCache()
+
+	go func() { // signal handler
+		sig := <-sigs
+		fmt.Printf("Received signal: %s\n", sig)
+
+		// Save the cache before exiting
+		fmt.Println("Saving cache before exit...")
+		definition.SaveCache(&wordsWithoutDefinitions)
+
+		// Cancel the context to signal other goroutines to clean up
+		cancel()
+
+		// Exit cleanly
+		os.Exit(0)
+	}()
 
 	if *credentialFlag != "" {
 		var err error
@@ -56,8 +77,8 @@ func main() {
 
 	for { // main loop
 		word := getAcceptableWord(babbler)
-		responseObject := definition.GetResponse(&word)
-        definition.SaveCache("/Users/25jaso/.cache/gospell/cache", &wordsWithoutDefinitions)
+		responseObject := definition.GetResponse(word)
+		definition.SaveCache(&wordsWithoutDefinitions)
 
 		go definition.PrintDefinition(responseObject)
 		go tts.SayWord(ctx, *client, word)
@@ -80,6 +101,9 @@ func handleUserInput(ctx context.Context, client *texttospeech.Client, word stri
 			fmt.Println("Key:", key, "Value:", value)
 		}
 		return
+	} else if userInput == "/q" {
+		definition.SaveCache(&wordsWithoutDefinitions)
+		os.Exit(0)
 	}
 
 	if userInput == word {
