@@ -172,7 +172,7 @@ func GetDefinition(responseObject Welcome, numDefinitions int) string {
                 return returnString
             }
 
-            returnString += fmt.Sprintf("%s: %s\n", meaning.PartOfSpeech, definitions.Definition)
+            returnString += fmt.Sprintf("%s: %s", meaning.PartOfSpeech, definitions.Definition)
             index++
 		}
 	}

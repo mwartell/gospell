@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"gospell/internal/api"
 	"gospell/internal/central"
 	"gospell/internal/definition"
 	"gospell/internal/tts"
@@ -16,7 +17,9 @@ import (
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
+	"github.com/muesli/reflow/wordwrap"
 	"github.com/tjarratt/babble"
 	"google.golang.org/api/option"
 )
@@ -53,6 +56,8 @@ type model struct {
 	streak         int
 	correction     string
 	numDefinitions int
+	width          int
+	height         int
 }
 
 func initialModel() model {
@@ -101,14 +106,14 @@ func (m *model) Init() tea.Cmd {
 		log.Fatal("No credentials file provided")
 	}
 
-    m.numDefinitions = *numDefinitionsFlag
+	m.numDefinitions = *numDefinitionsFlag
 	m.cache = definition.LoadCache()
 	m.babbler.Count = 1
 
-    m.word = central.GetAcceptableWord(m.babbler)
-    res := definition.GetResponse(m.word)
-    m.definition = definition.GetDefinition(res, m.numDefinitions)
-    go tts.SayWord(m.ctx, *m.client, m.word)
+	m.word = central.GetAcceptableWord(m.babbler)
+	res := definition.GetResponse(m.word)
+	m.definition = definition.GetDefinition(res, m.numDefinitions)
+	go tts.SayWord(m.ctx, *m.client, m.word)
 
 	return textinput.Blink
 }
@@ -154,11 +159,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyCtrlC, tea.KeyEsc, tea.KeyCtrlD:
 			definition.SaveCache(&m.cache)
+			os.Remove("temp.wav")
 			return m, tea.Quit
 		case tea.KeyCtrlR: // repeat word
-			go tts.SayWord(m.ctx, *m.client, m.word)
+			go api.PlayWav("temp.wav")
 			return m, nil
 		}
+
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 
 	case correctMessage:
 		m.streak++
@@ -180,11 +190,43 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return fmt.Sprintf(
-		"Welcome to gospell\n\n%s\n%s%s%s",
-		m.textInput.View(),
-		m.definition,
-		m.correction,
-		"\nStreak: "+fmt.Sprintf("%d", m.streak),
-	) + "\n"
+    // Create a container style that will be centered as a whole
+    containerStyle := lipgloss.NewStyle().Padding(1, 2)
+    
+    // Center the welcome text within the container
+    welcomeText := lipgloss.NewStyle().
+        Align(lipgloss.Center).
+        Width(100). // Set a fixed width for the centered elements
+        Render("Welcome to gospell!")
+    
+    // Center the input field within the container
+    inputView := lipgloss.NewStyle().
+        Align(lipgloss.Center).
+        Width(100).
+        Render(m.textInput.View())
+    
+    // Left-align the definition but keep it within the container's width
+    definitionText := wordwrap.String(m.definition, 100)
+
+    correctionText := lipgloss.NewStyle().
+        Align(lipgloss.Center).
+        Width(100).
+        Render(m.correction)
+    
+    // Center the streak counter
+    streakText := lipgloss.NewStyle().
+        Align(lipgloss.Center).
+        Width(100).
+        Render("Streak: " + fmt.Sprintf("%d", m.streak))
+    
+    // Combine all elements with the container style
+    content := containerStyle.Render(
+        welcomeText + "\n\n" +
+        inputView + "\n\n" +
+        definitionText + "\n" +
+        correctionText + "\n" +
+        streakText,
+    )
+    
+    return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
 }
