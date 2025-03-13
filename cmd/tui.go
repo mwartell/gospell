@@ -23,7 +23,7 @@ import (
 
 func main() {
 	model := initialModel()
-	p := tea.NewProgram(&model)
+	p := tea.NewProgram(&model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
@@ -42,16 +42,17 @@ type correctMessage struct{}
 type incorrectMessage struct{}
 
 type model struct {
-	textInput  textinput.Model
-	client     *texttospeech.Client
-	ctx        context.Context
-	err        error
-	cache      map[string]struct{}
-	babbler    babble.Babbler
-	definition string
-	word       string
-	streak     int
-	correction string
+	textInput      textinput.Model
+	client         *texttospeech.Client
+	ctx            context.Context
+	err            error
+	cache          map[string]struct{}
+	babbler        babble.Babbler
+	definition     string
+	word           string
+	streak         int
+	correction     string
+	numDefinitions int
 }
 
 func initialModel() model {
@@ -62,23 +63,24 @@ func initialModel() model {
 	ti.Width = 20
 
 	return model{
-		textInput:  ti,
-		client:     nil,
-		ctx:        nil,
-		err:        nil,
-		cache:      make(map[string]struct{}),
-		babbler:    babble.NewBabbler(),
-		definition: "",
-		word:       "",
-		streak:     0,
-        correction: "",
+		textInput:      ti,
+		client:         nil,
+		ctx:            nil,
+		err:            nil,
+		cache:          make(map[string]struct{}),
+		babbler:        babble.NewBabbler(),
+		definition:     "",
+		word:           "",
+		streak:         0,
+		correction:     "",
+		numDefinitions: 1,
 	}
 }
 
 func (m *model) Init() tea.Cmd {
 	fs := flag.NewFlagSet("gospell", flag.ExitOnError)
 	credentialFlag := fs.String("credentials", "", "Path to Google Cloud credentials JSON file")
-	// numDefinitionsFlag := fs.Int("definitions", 1, "Number of definitions to display")
+	numDefinitionsFlag := fs.Int("definitions", 1, "Number of definitions to display")
 
 	// ctx, cancel := context.WithCancel(context.Background())
 	ctx := context.Background()
@@ -99,8 +101,14 @@ func (m *model) Init() tea.Cmd {
 		log.Fatal("No credentials file provided")
 	}
 
+    m.numDefinitions = *numDefinitionsFlag
 	m.cache = definition.LoadCache()
 	m.babbler.Count = 1
+
+    m.word = central.GetAcceptableWord(m.babbler)
+    res := definition.GetResponse(m.word)
+    m.definition = definition.GetDefinition(res, m.numDefinitions)
+    go tts.SayWord(m.ctx, *m.client, m.word)
 
 	return textinput.Blink
 }
@@ -110,7 +118,7 @@ func getNewWord(m *model) tea.Cmd {
 	return func() tea.Msg {
 		word := central.GetAcceptableWord(m.babbler)
 		res := definition.GetResponse(word)
-		def := definition.GetDefinition(res, 1)
+		def := definition.GetDefinition(res, m.numDefinitions)
 
 		// Play the word audio in a goroutine to avoid blocking
 		go tts.SayWord(m.ctx, *m.client, word)
@@ -153,14 +161,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case correctMessage:
-		// Handle correct answer (update streak, etc.)
 		m.streak++
 		m.definition = color.GreenString(m.definition)
-        m.correction = ""
+		m.correction = ""
 		return m, getNewWord(m)
 
 	case incorrectMessage:
-		// Handle incorrect answer
 		m.streak = 0
 		m.definition = color.RedString(m.definition)
 		m.correction = fmt.Sprintf("\nCorrect spelling: %s", m.word)
@@ -178,7 +184,7 @@ func (m model) View() string {
 		"Welcome to gospell\n\n%s\n%s%s%s",
 		m.textInput.View(),
 		m.definition,
-        m.correction,
+		m.correction,
 		"\nStreak: "+fmt.Sprintf("%d", m.streak),
 	) + "\n"
 }
