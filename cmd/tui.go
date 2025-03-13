@@ -13,6 +13,7 @@ import (
 	"gospell/internal/tts"
 	"log"
 	"os"
+	"strings"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -52,10 +53,10 @@ type model struct {
 	cache          map[string]struct{}
 	babbler        babble.Babbler
 	definition     string
+	numDefinitions int
 	word           string
 	streak         int
 	correction     string
-	numDefinitions int
 	width          int
 	height         int
 }
@@ -172,7 +173,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case correctMessage:
 		m.streak++
-		m.definition = color.GreenString(m.definition)
+		lines := strings.Split(m.definition, "\n")
+		for i := range lines {
+			lines[i] = color.GreenString(lines[i])
+		}
+		m.definition = strings.Join(lines, "\n")
+
 		m.correction = ""
 		return m, getNewWord(m)
 
@@ -190,43 +196,43 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-    // Create a container style that will be centered as a whole
-    containerStyle := lipgloss.NewStyle().Padding(1, 2)
-    
-    // Center the welcome text within the container
-    welcomeText := lipgloss.NewStyle().
-        Align(lipgloss.Center).
-        Width(100). // Set a fixed width for the centered elements
-        Render("Welcome to gospell!")
-    
-    // Center the input field within the container
-    inputView := lipgloss.NewStyle().
-        Align(lipgloss.Center).
-        Width(100).
-        Render(m.textInput.View())
-    
-    // Left-align the definition but keep it within the container's width
-    definitionText := wordwrap.String(m.definition, 100)
+	// Create a container style that will be centered as a whole
+	containerStyle := lipgloss.NewStyle().Padding(1, 2)
 
-    correctionText := lipgloss.NewStyle().
-        Align(lipgloss.Center).
-        Width(100).
-        Render(m.correction)
-    
-    // Center the streak counter
-    streakText := lipgloss.NewStyle().
-        Align(lipgloss.Center).
-        Width(100).
-        Render("Streak: " + fmt.Sprintf("%d", m.streak))
-    
-    // Combine all elements with the container style
-    content := containerStyle.Render(
-        welcomeText + "\n\n" +
-        inputView + "\n\n" +
-        definitionText + "\n" +
-        correctionText + "\n" +
-        streakText,
-    )
-    
-    return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+	// Center the welcome text within the container
+	welcomeText := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(100). // Set a fixed width for the centered elements
+		Render("Welcome to gospell!")
+
+	// Center the input field within the container
+	inputView := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(100).
+		Render(m.textInput.View())
+
+	// Left-align the definition but keep it within the container's width
+	definitionText := wordwrap.String(m.definition, 100)
+
+	correctionText := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(100).
+		Render(m.correction)
+
+	// Center the streak counter
+	streakText := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(100).
+		Render("Streak: " + fmt.Sprintf("%d", m.streak))
+
+	// Combine all elements with the container style
+	content := containerStyle.Render(
+		welcomeText + "\n\n" +
+			inputView + "\n\n" +
+			definitionText + "\n" +
+			correctionText + "\n" +
+			streakText,
+	)
+
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
 }
