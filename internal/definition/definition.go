@@ -76,7 +76,6 @@ func IsDefined(word string, wordsWithoutDefinitions *map[string]struct{}) bool {
 	// if not found, proceed to API call
 
 	if wordInCache(word, wordsWithoutDefinitions) {
-		fmt.Println("word was in cache")
 		return false
 	}
 
@@ -159,23 +158,23 @@ func LoadCache() map[string]struct{} {
 	return cache
 }
 
-func PrintDefinition(responseObject Welcome, numDefinitions int) {
+func GetDefinition(responseObject Welcome, numDefinitions int) string {
 	if len(responseObject) == 0 {
 		fmt.Println("No definition found.")
-		return
+		return ""
 	}
 
-	fmt.Println("Definitions:")
     index := 0
+    returnString := ""
 	for _, meaning := range responseObject[0].Meanings {
 		for _, definitions := range meaning.Definitions {
             if index == numDefinitions {
-                return
+                return returnString
             }
 
-            fmt.Print(meaning.PartOfSpeech + ": ")
-            fmt.Println(definitions.Definition)
+            returnString += fmt.Sprintf("%s: %s\n", meaning.PartOfSpeech, definitions.Definition)
             index++
 		}
 	}
+    return returnString
 }

@@ -1,4 +1,4 @@
-package main
+package central
 
 import (
 	"context"
@@ -27,12 +27,11 @@ func main() {
 	// generate a quiz based on that level.
 	// the program will also keep track of the user's progress, and provide feedback
 	// on their performance.
-	fmt.Println("gospell - a spelling quiz program")
+    fs := flag.NewFlagSet("gospell", flag.ExitOnError)
+	credentialFlag := fs.String("credentials", "", "Path to Google Cloud credentials JSON file")
+    numDefinitionsFlag := fs.Int("definitions", 1, "Number of definitions to display")
 
-	credentialFlag := flag.String("credentials", "", "Path to Google Cloud credentials JSON file")
-    numDefinitionsFlag := flag.Int("definitions", 1, "Number of definitions to display")
-
-	flag.Parse()
+	fs.Parse(os.Args[1:])
 
 	var babbler = babble.NewBabbler() // babbler gets a random word from /usr/share/dict/words
 	babbler.Count = 1
@@ -76,11 +75,10 @@ func main() {
 	}
 
 	for { // main loop
-		word := getAcceptableWord(babbler)
+		word := GetAcceptableWord(babbler)
 		responseObject := definition.GetResponse(word)
-		definition.SaveCache(&wordsWithoutDefinitions)
 
-		go definition.PrintDefinition(responseObject, *numDefinitionsFlag)
+		go fmt.Print(definition.GetDefinition(responseObject, *numDefinitionsFlag))
 		go tts.SayWord(ctx, *client, word)
 
 		handleUserInput(ctx, client, word)
@@ -113,7 +111,7 @@ func handleUserInput(ctx context.Context, client *texttospeech.Client, word stri
     }
 }
 
-func getAcceptableWord(babbler babble.Babbler) string {
+func GetAcceptableWord(babbler babble.Babbler) string {
     for {
         word := babbler.Babble()
         if isAcceptableWord(word) {

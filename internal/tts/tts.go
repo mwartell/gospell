@@ -22,7 +22,7 @@ func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 	if err := os.WriteFile(tempFile, audioContent, 0644); err != nil {
 		panic(fmt.Sprintf("Failed to write audio content to file: %v", err))
 	}
-    defer os.Remove(tempFile)
+	defer os.Remove(tempFile)
 
 	// Play the audio
 	if err := api.PlayWav(tempFile); err != nil {
@@ -42,8 +42,10 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 		// configure voice
 		Voice: &texttospeechpb.VoiceSelectionParams{
 			LanguageCode: "en-US",
-			Name:         "en-US-Neural2-J", // lowkey just picked this one for fun
-			SsmlGender:   texttospeechpb.SsmlVoiceGender_MALE,
+			Name:         "en-US-Chirp3-HD-Fenrir", // this one makes me laugh bc he's zesty
+			// Name:       "en-US-Wavenet-D", // this one is more natural
+            // Name: "en-US-Neural2-J",
+			SsmlGender: texttospeechpb.SsmlVoiceGender_MALE,
 		},
 		// Configure the audio output
 		AudioConfig: &texttospeechpb.AudioConfig{
