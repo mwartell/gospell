@@ -165,6 +165,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlR: // repeat word
 			go api.PlayWav("temp.wav")
 			return m, nil
+        case tea.KeyCtrlH: // say what's in the text box
+            go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
 		}
 
 	case tea.WindowSizeMsg:
