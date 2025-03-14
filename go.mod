@@ -10,6 +10,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/gopxl/beep v1.4.1
 	github.com/muesli/reflow v0.3.0
+	github.com/pborman/getopt v1.1.0
 	github.com/tjarratt/babble v0.0.0-20210505082055-cbca2a4833c1
 	google.golang.org/api v0.224.0
 )

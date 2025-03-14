@@ -21,16 +21,33 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
 	"github.com/muesli/reflow/wordwrap"
+	"github.com/pborman/getopt"
 	"github.com/tjarratt/babble"
 	"google.golang.org/api/option"
 )
 
 func main() {
+	credentialFlag := getopt.StringLong("credentials", 'c', "", "Path to Google Cloud credentials JSON file")
+	numDefinitionsFlag := getopt.IntLong("definitions", 'd', 1, "Number of definitions to display")
+	checkFlag := getopt.BoolLong("check", 'k', "Check if the word is in the dictionary")
+	helpFlag := getopt.BoolLong("help", 'h', "display help")
+
+	getopt.Parse()
+
+	if *helpFlag {
+		getopt.Usage()
+		os.Exit(0)
+	}
+
 	model := initialModel()
 	p := tea.NewProgram(&model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
+
+	model.credentialPath = *credentialFlag
+	model.numDefinitions = *numDefinitionsFlag
+	model.check = *checkFlag
 }
 
 type (
@@ -54,6 +71,8 @@ type model struct {
 	babbler        babble.Babbler
 	definition     string
 	numDefinitions int
+	credentialPath string
+	check          bool
 	word           string
 	streak         int
 	correction     string
@@ -76,6 +95,8 @@ func initialModel() model {
 		cache:          make(map[string]struct{}),
 		babbler:        babble.NewBabbler(),
 		definition:     "",
+		credentialPath: "",
+		check:          false,
 		word:           "",
 		streak:         0,
 		correction:     "",
@@ -165,8 +186,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlR: // repeat word
 			go api.PlayWav("temp.wav")
 			return m, nil
-        case tea.KeyCtrlH: // say what's in the text box
-            go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
+		case tea.KeyCtrlH: // say what's in the text box
+			go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
 		}
 
 	case tea.WindowSizeMsg:
