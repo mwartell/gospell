@@ -234,8 +234,12 @@ func (m model) View() string {
 		Width(100).
 		Render(m.textInput.View())
 
-	// Left-align the definition but keep it within the container's width
-	definitionText := wordwrap.String(m.definition, 100)
+	// Center the definition but keep it within the container's width
+    definitionText := lipgloss.NewStyle().
+        Align(lipgloss.Center).
+        Width(100).
+        Render(wordwrap.String(m.definition, 100)) // Wrap text to fit within the container
+
 
 	correctionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
@@ -251,7 +255,7 @@ func (m model) View() string {
 	// Combine all elements with the container style
 	content := containerStyle.Render(
 		welcomeText + "\n\n" +
-			inputView + "\n\n" +
+			inputView + "\n" +
 			definitionText + "\n" +
 			correctionText + "\n" +
 			streakText,
