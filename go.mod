@@ -1,4 +1,4 @@
-module gospell
+module github.com/jharlan-hash/gospell
 
 go 1.24.1
 
