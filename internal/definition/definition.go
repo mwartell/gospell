@@ -64,7 +64,7 @@ func GetResponse(word string) Welcome {
 	if err != nil {
 		log.Fatal(err)
 	}
-	responseObject, err := UnmarshalWelcome(responseData)
+	responseObject, _ := UnmarshalWelcome(responseData)
 
 	return responseObject
 }
