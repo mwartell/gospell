@@ -3,7 +3,7 @@
 GoSpell is a terminal-based spelling practice application that uses text-to-speech to help users improve their spelling skills
 
 ![GoSpell Demo](https://img.shields.io/badge/demo-coming%20soon-blue)
-[![Go Report Card](https://img.shields.io/badge/go%20report-A+-brightgreen)](https://goreportcard.com/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jharlan-hash/gospell)](https://goreportcard.com/report/github.com/jharlan-hash/gospell)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
