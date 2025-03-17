@@ -1,16 +1,33 @@
 package api
 
 import (
+	"gospell/internal/definition"
 	"os"
+	"strings"
 	"time"
 	"unicode"
 
 	"github.com/gopxl/beep"
 	"github.com/gopxl/beep/speaker"
 	"github.com/gopxl/beep/wav"
+	"github.com/tjarratt/babble"
 )
 
-func IsLower(s *string) bool {
+func GetAcceptableWord(babbler babble.Babbler, cache map[string]struct{}) string {
+	for {
+		word := babbler.Babble()
+		if isAcceptableWord(word, cache) {
+			return word
+		}
+	}
+}
+
+// Acceptable words are lowercase and contain no special characters & are defined in the dictionary
+func isAcceptableWord(word string, cache map[string]struct{}) bool {
+	return !strings.ContainsAny(word, "-_'") && isLower(&word) && definition.IsDefined(word, cache)
+}
+
+func isLower(s *string) bool {
 	for _, r := range *s {
 		if !unicode.IsLower(r) && unicode.IsLetter(r) {
 			return false

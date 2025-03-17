@@ -70,7 +70,7 @@ func GetResponse(word string) Welcome {
 }
 
 // isDefined checks if a word is defined in the dictionary
-func IsDefined(word string, wordsWithoutDefinitions *map[string]struct{}) bool {
+func IsDefined(word string, wordsWithoutDefinitions map[string]struct{}) bool {
 	// first, search the cache
 	// if found, return false
 	// if not found, proceed to API call
@@ -89,12 +89,12 @@ func IsDefined(word string, wordsWithoutDefinitions *map[string]struct{}) bool {
 	}
 }
 
-func addToCache(word string, wordsWithoutDefinitions *map[string]struct{}) {
-	(*wordsWithoutDefinitions)[word] = struct{}{}
+func addToCache(word string, wordsWithoutDefinitions map[string]struct{}) {
+	(wordsWithoutDefinitions)[word] = struct{}{}
 }
 
-func wordInCache(word string, wordsWithoutDefinitions *map[string]struct{}) bool {
-	if _, exists := (*wordsWithoutDefinitions)[word]; exists {
+func wordInCache(word string, wordsWithoutDefinitions map[string]struct{}) bool {
+	if _, exists := (wordsWithoutDefinitions)[word]; exists {
 		return true
 	} else {
 		return false

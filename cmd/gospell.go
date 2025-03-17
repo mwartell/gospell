@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"gospell/internal/api"
-	"gospell/internal/central"
 	"gospell/internal/definition"
 	"gospell/internal/tts"
 	"log"
@@ -132,7 +131,7 @@ func (m *model) Init() tea.Cmd {
 	m.cache = definition.LoadCache()
 	m.babbler.Count = 1
 
-	m.word = central.GetAcceptableWord(m.babbler)
+	m.word = api.GetAcceptableWord(m.babbler, m.cache)
 	res := definition.GetResponse(m.word)
 	m.definition = definition.GetDefinition(res, m.numDefinitions)
 	go tts.SayWord(m.ctx, *m.client, m.word)
@@ -143,7 +142,7 @@ func (m *model) Init() tea.Cmd {
 // Command to generate a new word
 func getNewWord(m *model) tea.Cmd {
 	return func() tea.Msg {
-		word := central.GetAcceptableWord(m.babbler)
+		word := api.GetAcceptableWord(m.babbler, m.cache)
 		res := definition.GetResponse(word)
 		def := definition.GetDefinition(res, m.numDefinitions)
 
