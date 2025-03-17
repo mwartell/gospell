@@ -1,7 +1,7 @@
 package api
 
 import (
-	"gospell/internal/definition"
+	"github.com/jharlan-hash/gospell/internal/definition"
 	"os"
 	"strings"
 	"time"

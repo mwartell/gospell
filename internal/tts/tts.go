@@ -3,7 +3,7 @@ package tts
 import (
 	"context"
 	"fmt"
-	"gospell/internal/api"
+	"github.com/jharlan-hash/gospell/internal/api"
 	"os"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
