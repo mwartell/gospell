@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"github.com/jharlan-hash/gospell/internal/api"
 	"github.com/jharlan-hash/gospell/internal/definition"
@@ -28,7 +27,6 @@ import (
 func main() {
 	credentialFlag := getopt.StringLong("credentials", 'c', "", "Path to Google Cloud credentials JSON file")
 	numDefinitionsFlag := getopt.IntLong("definitions", 'd', 1, "Number of definitions to display")
-	checkFlag := getopt.BoolLong("check", 'k', "Check if the word is in the dictionary")
 	helpFlag := getopt.BoolLong("help", 'h', "display help")
 
 	getopt.Parse()
@@ -38,15 +36,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	model := initialModel()
+	model := initialModel(*credentialFlag, *numDefinitionsFlag)
 	p := tea.NewProgram(&model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
-
-	model.credentialPath = *credentialFlag
-	model.numDefinitions = *numDefinitionsFlag
-	model.check = *checkFlag
 }
 
 type (
@@ -71,7 +65,6 @@ type model struct {
 	definition     string
 	numDefinitions int
 	credentialPath string
-	check          bool
 	word           string
 	streak         int
 	correction     string
@@ -79,7 +72,7 @@ type model struct {
 	height         int
 }
 
-func initialModel() model {
+func initialModel(credentialPath string, numDefinitions int) model {
 	ti := textinput.New()
 	ti.Placeholder = "spell spoken word..."
 	ti.Focus()
@@ -94,29 +87,21 @@ func initialModel() model {
 		cache:          make(map[string]struct{}),
 		babbler:        babble.NewBabbler(),
 		definition:     "",
-		credentialPath: "",
-		check:          false,
+		credentialPath: credentialPath,
 		word:           "",
 		streak:         0,
 		correction:     "",
-		numDefinitions: 1,
+		numDefinitions: numDefinitions,
 	}
 }
 
 func (m *model) Init() tea.Cmd {
-	fs := flag.NewFlagSet("gospell", flag.ExitOnError)
-	credentialFlag := fs.String("credentials", "", "Path to Google Cloud credentials JSON file")
-	numDefinitionsFlag := fs.Int("definitions", 1, "Number of definitions to display")
-
-	// ctx, cancel := context.WithCancel(context.Background())
 	ctx := context.Background()
 
-	fs.Parse(os.Args[1:])
-
-	if *credentialFlag != "" {
+	if m.credentialPath != "" {
 		var err error
 
-		client, err := texttospeech.NewClient(ctx, option.WithCredentialsFile(*credentialFlag))
+		client, err := texttospeech.NewClient(ctx, option.WithCredentialsFile(m.credentialPath))
 		if err != nil {
 			log.Fatal("Bad credentials file")
 		}
@@ -127,7 +112,6 @@ func (m *model) Init() tea.Cmd {
 		log.Fatal("No credentials file provided")
 	}
 
-	m.numDefinitions = *numDefinitionsFlag
 	m.cache = definition.LoadCache()
 	m.babbler.Count = 1
 
