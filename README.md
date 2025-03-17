@@ -37,7 +37,7 @@ I think it would be great for students, language learners, or anyone that wants 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/gospell.git
+git clone https://github.com/jharlan-hash/gospell.git
 cd gospell
 
 # Install dependencies
