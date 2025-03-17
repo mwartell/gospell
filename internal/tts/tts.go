@@ -42,8 +42,8 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 		Voice: &texttospeechpb.VoiceSelectionParams{
 			LanguageCode: "en-US",
 			// Name:         "en-US-Chirp3-HD-Fenrir", // this one makes me laugh bc he's zesty
-			Name:       "en-US-Wavenet-D", // this one is more natural
-            // Name: "en-US-Neural2-J", // this is the og
+			Name: "en-US-Wavenet-D", // this one is more natural
+			// Name: "en-US-Neural2-J", // this is the og
 			SsmlGender: texttospeechpb.SsmlVoiceGender_MALE,
 		},
 		// Configure the audio output

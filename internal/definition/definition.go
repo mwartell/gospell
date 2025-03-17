@@ -57,7 +57,7 @@ type Phonetic struct {
 func GetResponse(word string) Welcome {
 	response, err := http.Get("https://api.dictionaryapi.dev/api/v2/entries/en/" + word)
 	if err != nil {
-        log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	responseData, err := io.ReadAll(response.Body)
@@ -103,58 +103,58 @@ func wordInCache(word string, wordsWithoutDefinitions map[string]struct{}) bool 
 
 func SaveCache(cache *map[string]struct{}) {
 	cacheDir, _ := os.UserCacheDir()
-	os.MkdirAll(cacheDir + "/gospell", os.ModePerm)
+	os.MkdirAll(cacheDir+"/gospell", os.ModePerm)
 	file := cacheDir + "/gospell/cache.gob"
 
-    f := new(os.File)
-    if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-        f, err = os.Create(file)
-        if err != nil {
-            log.Fatal("Error creating cache file:", err)
-        }
-        defer f.Close()
-    } else {
-        f, err = os.OpenFile(file, os.O_RDWR, 0644)
-        if err != nil {
-            log.Fatal("Error opening cache file:", err)
-        }
-        defer f.Close()
-    }
+	f := new(os.File)
+	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
+		f, err = os.Create(file)
+		if err != nil {
+			log.Fatal("Error creating cache file:", err)
+		}
+		defer f.Close()
+	} else {
+		f, err = os.OpenFile(file, os.O_RDWR, 0644)
+		if err != nil {
+			log.Fatal("Error opening cache file:", err)
+		}
+		defer f.Close()
+	}
 
 	enc := gob.NewEncoder(f)
 	if err := enc.Encode(cache); err != nil {
-        log.Fatal("Error encoding cache:", err)
-    }
+		log.Fatal("Error encoding cache:", err)
+	}
 }
 
 func LoadCache() map[string]struct{} {
 	cacheDir, _ := os.UserCacheDir()
-	os.MkdirAll(cacheDir + "/gospell", os.ModePerm)
+	os.MkdirAll(cacheDir+"/gospell", os.ModePerm)
 	file := cacheDir + "/gospell/cache.gob"
 
 	var f = new(os.File)
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
 		f, err = os.Create(file)
-        if err != nil {
-            log.Fatal("Error creating cache file:", err)
-        }
+		if err != nil {
+			log.Fatal("Error creating cache file:", err)
+		}
 		defer f.Close()
 
 		return make(map[string]struct{})
 	} else {
 		f, err = os.Open(file)
-        if err != nil {
-            log.Fatal("Error opening cache file:", err)
-        }
+		if err != nil {
+			log.Fatal("Error opening cache file:", err)
+		}
 		defer f.Close()
 	}
 
 	enc := gob.NewDecoder(f)
-    cache := make(map[string]struct{})
+	cache := make(map[string]struct{})
 
-    if err := enc.Decode(&cache); err != nil {
-        fmt.Println("Error decoding cache:", err)
-    }
+	if err := enc.Decode(&cache); err != nil {
+		fmt.Println("Error decoding cache:", err)
+	}
 	return cache
 }
 
@@ -164,17 +164,17 @@ func GetDefinition(responseObject Welcome, numDefinitions int) string {
 		return ""
 	}
 
-    index := 0
-    returnString := ""
+	index := 0
+	returnString := ""
 	for _, meaning := range responseObject[0].Meanings {
 		for _, definitions := range meaning.Definitions {
-            if index == numDefinitions {
-                return returnString
-            }
+			if index == numDefinitions {
+				return returnString
+			}
 
-            returnString += fmt.Sprintf("%s: %s\n", meaning.PartOfSpeech, definitions.Definition)
-            index++
+			returnString += fmt.Sprintf("%s: %s\n", meaning.PartOfSpeech, definitions.Definition)
+			index++
 		}
 	}
-    return returnString
+	return returnString
 }

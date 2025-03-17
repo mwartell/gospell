@@ -233,12 +233,11 @@ func (m model) View() string {
 		Width(100).
 		Render(m.textInput.View())
 
-	// Center the definition but keep it within the container's width
-    definitionText := lipgloss.NewStyle().
-        Align(lipgloss.Center).
-        Width(100).
-        Render(wordwrap.String(m.definition, 100)) // Wrap text to fit within the container
-
+		// Center the definition but keep it within the container's width
+	definitionText := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(100).
+		Render(wordwrap.String(m.definition, 100)) // Wrap text to fit within the container
 
 	correctionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
