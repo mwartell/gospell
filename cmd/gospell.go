@@ -36,12 +36,18 @@ func main() {
 
 	getopt.Parse()
 
+
 	if *helpFlag {
 		getopt.Usage()
 		os.Exit(0)
 	}
 
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
 	model := initialModel(*credentialFlag, *numDefinitionsFlag)
+    model.ctx = ctx
+
 	p := tea.NewProgram(&model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
@@ -103,18 +109,15 @@ func initialModel(credentialPath string, numDefinitions int) model {
 }
 
 func (m *model) Init() tea.Cmd {
-	ctx := context.Background()
-
 	if m.credentialPath != "" {
 		var err error
 
-		client, err := texttospeech.NewClient(ctx, option.WithCredentialsFile(m.credentialPath))
+		client, err := texttospeech.NewClient(m.ctx, option.WithCredentialsFile(m.credentialPath))
 		if err != nil {
 			log.Fatal("Bad credentials file")
 		}
 
 		m.client = client
-		m.ctx = ctx
 	} else {
 		log.Fatal("No credentials file provided")
 	}
