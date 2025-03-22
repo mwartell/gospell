@@ -41,8 +41,8 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 		// configure voice
 		Voice: &texttospeechpb.VoiceSelectionParams{
 			LanguageCode: "en-US",
-			Name:         "en-US-Chirp3-HD-Fenrir", // this one makes me laugh bc he's zesty
-			// Name: "en-US-Wavenet-D", // this one is more natural
+			// Name:         "en-US-Chirp3-HD-Fenrir", // this one makes me laugh bc he's zesty
+			Name: "en-US-Wavenet-D", // this one is more natural
 			// Name: "en-US-Neural2-J", // this is the og
 			SsmlGender: texttospeechpb.SsmlVoiceGender_MALE,
 		},
@@ -53,7 +53,7 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 	}
 
 	// Call the API
-	resp, err := client.SynthesizeSpeech(ctx, &req) // this is confusing but it is two diff functions
+    resp, err := client.SynthesizeSpeech(ctx, &req) // this is confusing but it is two diff functions
 	if err != nil {
 		return nil, err
 	}

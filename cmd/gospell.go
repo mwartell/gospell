@@ -6,12 +6,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/jharlan-hash/gospell/internal/api"
-	"github.com/jharlan-hash/gospell/internal/definition"
-	"github.com/jharlan-hash/gospell/internal/tts"
 	"log"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/jharlan-hash/gospell/internal/api"
+	"github.com/jharlan-hash/gospell/internal/definition"
+	"github.com/jharlan-hash/gospell/internal/tts"
+	"github.com/jharlan-hash/gospell/internal/wpm"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -23,6 +26,8 @@ import (
 	"github.com/tjarratt/babble"
 	"google.golang.org/api/option"
 )
+
+var debug = true
 
 func main() {
 	credentialFlag := getopt.StringLong("credentials", 'c', "", "Path to Google Cloud credentials JSON file")
@@ -66,6 +71,8 @@ type model struct {
 	numDefinitions int
 	credentialPath string
 	word           string
+	initialTime    time.Time
+	finalTime      time.Time
 	streak         int
 	correction     string
 	width          int
@@ -90,7 +97,7 @@ func initialModel(credentialPath string, numDefinitions int) model {
 		credentialPath: credentialPath,
 		word:           "",
 		streak:         0,
-		correction:     "",
+		correction:     "\n",
 		numDefinitions: numDefinitions,
 	}
 }
@@ -150,10 +157,20 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		if m.textInput.Value() == "" && msg.Type != tea.KeyCtrlR {
+			m.initialTime = time.Now()
+		}
+
+        m.finalTime = time.Now()
 		switch msg.Type {
 		case tea.KeyEnter:
+            // ignoring a blank input
+            if (m.textInput.Value() == "") {
+                return m, nil
+            }
+
 			userInput := m.textInput.Value()
-			m.textInput.Reset()
+            m.textInput.Reset()
 
 			if userInput == m.word {
 				// Correct answer
@@ -185,7 +202,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.definition = strings.Join(lines, "\n")
 
-		m.correction = ""
+		m.correction = "\n"
 		return m, getNewWord(m)
 
 	case incorrectMessage:
@@ -228,6 +245,16 @@ func (m model) View() string {
 		Width(100).
 		Render(m.correction)
 
+    // debugText := lipgloss.NewStyle().
+    //     Align(lipgloss.Center).
+    //     Width(100).
+    //     Render(fmt.Sprintf("Word: %s", m.word))
+
+	wpmText := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(100).
+		Render(fmt.Sprintf("WPM: %d", wpm.CalculateWpm(m.textInput.Value(), m.initialTime, m.finalTime)))
+
 	// Center the streak counter
 	streakText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
@@ -236,7 +263,9 @@ func (m model) View() string {
 
 	// Combine all elements with the container style
 	content := containerStyle.Render(
+        // debugText + "\n" +
 		welcomeText + "\n\n" +
+			wpmText + "\n" +
 			inputView + "\n" +
 			definitionText + "\n" +
 			correctionText + "\n" +

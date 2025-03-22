@@ -4,6 +4,7 @@ go 1.24.1
 
 require (
 	cloud.google.com/go/texttospeech v1.11.1
+	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/lipgloss v1.0.0
@@ -46,6 +47,7 @@ require (
 	github.com/onsi/gomega v1.36.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/sergi/go-diff v1.3.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.59.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0 // indirect

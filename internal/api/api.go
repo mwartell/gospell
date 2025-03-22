@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/jharlan-hash/gospell/internal/definition"
 	"os"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/jharlan-hash/gospell/internal/definition"
 
 	"github.com/gopxl/beep"
 	"github.com/gopxl/beep/speaker"
