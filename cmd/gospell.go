@@ -15,13 +15,12 @@ import (
 	"github.com/jharlan-hash/gospell/internal/definition"
 	"github.com/jharlan-hash/gospell/internal/tts"
 	"github.com/jharlan-hash/gospell/internal/wpm"
+	"github.com/muesli/reflow/wordwrap"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/fatih/color"
-	"github.com/muesli/reflow/wordwrap"
 	"github.com/pborman/getopt"
 	"github.com/tjarratt/babble"
 	"google.golang.org/api/option"
@@ -36,17 +35,16 @@ func main() {
 
 	getopt.Parse()
 
-
 	if *helpFlag {
 		getopt.Usage()
 		os.Exit(0)
 	}
 
-    ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	model := initialModel(*credentialFlag, *numDefinitionsFlag)
-    model.ctx = ctx
+	model.ctx = ctx
 
 	p := tea.NewProgram(&model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
@@ -164,16 +162,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.initialTime = time.Now()
 		}
 
-        m.finalTime = time.Now()
+		m.finalTime = time.Now()
 		switch msg.Type {
 		case tea.KeyEnter:
-            // ignoring a blank input
-            if (m.textInput.Value() == "") {
-                return m, nil
-            }
+			// ignoring a blank input
+			if m.textInput.Value() == "" {
+				return m, nil
+			}
 
 			userInput := m.textInput.Value()
-            m.textInput.Reset()
+			m.textInput.Reset()
 
 			if userInput == m.word {
 				// Correct answer
@@ -199,23 +197,35 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case correctMessage:
 		m.streak++
-		lines := strings.Split(m.definition, "\n")
-		for i := range lines {
-			lines[i] = color.GreenString(lines[i])
+
+		m.definition = wordwrap.String(m.definition, 100)
+
+		temparr := strings.Split(m.definition, "\n")
+		for index := range temparr {
+            temparr[index] = "\033[32m" + strings.TrimSpace(temparr[index]) + "\033[0m"
 		}
-		m.definition = strings.Join(lines, "\n")
+		m.definition = strings.Join(temparr, "\n")
 
 		m.correction = "\n"
 		return m, getNewWord(m)
 
 	case incorrectMessage:
 		m.streak = 0
-		m.definition = color.RedString(m.definition)
+
+		m.definition = wordwrap.String(m.definition, 100)
+
+		temparr := strings.Split(m.definition, "\n")
+		for index := range temparr {
+            temparr[index] = "\033[31m" + strings.TrimSpace(temparr[index]) + "\033[0m"
+		}
+		m.definition = strings.Join(temparr, "\n")
+
 		m.correction = fmt.Sprintf("\nCorrect spelling: %s", m.word)
 		return m, getNewWord(m)
 	}
 
 	// Handle text input updates
+
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd
@@ -241,17 +251,17 @@ func (m model) View() string {
 	definitionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(100).
-		Render(wordwrap.String(m.definition, 100)) // Wrap text to fit within the container
+		Render(m.definition)
 
 	correctionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(100).
 		Render(m.correction)
 
-    // debugText := lipgloss.NewStyle().
-    //     Align(lipgloss.Center).
-    //     Width(100).
-    //     Render(fmt.Sprintf("Word: %s", m.word))
+		// debugText := lipgloss.NewStyle().
+		//     Align(lipgloss.Center).
+		//     Width(100).
+		//     Render(fmt.Sprintf("Word: %s", m.word))
 
 	wpmText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
@@ -266,7 +276,7 @@ func (m model) View() string {
 
 	// Combine all elements with the container style
 	content := containerStyle.Render(
-        // debugText + "\n" +
+		// debugText + "\n" +
 		welcomeText + "\n\n" +
 			wpmText + "\n" +
 			inputView + "\n" +
