@@ -44,7 +44,7 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 			// Name:         "en-US-Chirp3-HD-Fenrir", // this one makes me laugh bc he's zesty
 			Name: "en-US-Wavenet-D", // this one is more natural
 			// Name: "en-US-Neural2-J", // this is the og
-			SsmlGender: texttospeechpb.SsmlVoiceGender_MALE,
+			SsmlGender: texttospeechpb.SsmlVoiceGender_FEMALE,
 		},
 		// Configure the audio output
 		AudioConfig: &texttospeechpb.AudioConfig{

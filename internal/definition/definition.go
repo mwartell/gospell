@@ -54,19 +54,104 @@ type Phonetic struct {
 	License   *License `json:"license,omitempty"`
 }
 
-func GetResponse(word string) Welcome {
+var responseObject Welcome
+
+func GetResponseObject(word string) Welcome {
+	if len(responseObject) == 0 || responseObject[0].Word != word {
+		getResponse(word)
+	}
+
+	return responseObject
+}
+
+func GetFirstDefinition(res Welcome) string {
+	slice := GetDefinitionSlice(res)
+	slice[0] = fmt.Sprintf("(1 of %d) %s", len(slice), slice[0])
+	return slice[0]
+}
+
+// func NextDefinition(definition *string, word string, index *int) {
+// 	if len(responseObject) == 0 || responseObject[0].Word != word {
+// 		getResponse(word)
+// 	}
+//
+// 	definitionSlice := GetDefinitionSlice(responseObject)
+//
+// 	*index++
+//
+// 	if *index >= len(definitionSlice) {
+// 		*definition = fmt.Sprintf("(%d of %d) %s", *index, len(definitionSlice), definitionSlice[0])
+// 		*index--
+// 	} else {
+// 		*definition = fmt.Sprintf("(%d of %d) %s", *index + 1, len(definitionSlice), definitionSlice[*index])
+// 	}
+// }
+
+func NextDefinition(definition *string, index *int) {
+	if len(responseObject) == 0 {
+		panic("everything has gone wrong and response object is empty")
+	}
+
+	definitionSlice := GetDefinitionSlice(responseObject)
+
+	if *index+1 >= len(definitionSlice) { // if user requests something past the end of the definition list
+		*definition = fmt.Sprintf(
+			"(%d of %d) %s",
+			len(definitionSlice),
+			len(definitionSlice),
+			definitionSlice[len(definitionSlice)-1],
+		)
+		return
+	} else { // increment index & change definition
+		*index++
+		*definition = fmt.Sprintf(
+			"(%d of %d) %s",
+			*index+1,
+			len(definitionSlice),
+			definitionSlice[*index],
+		)
+		return
+	}
+
+}
+
+func PrevDefinition(definition *string, word string, index *int) {
+	if len(responseObject) == 0 {
+		panic("everything has gone wrong and response object is empty")
+	}
+
+	definitionSlice := GetDefinitionSlice(responseObject)
+
+	if *index <= 0 { // if the user requests something before the start of the list
+		*index = 0
+		*definition = fmt.Sprintf(
+			"(%d of %d) %s",
+			1,
+			len(definitionSlice),
+			definitionSlice[0],
+		)
+	} else {
+		*index--
+		*definition = fmt.Sprintf(
+			"(%d of %d) %s",
+			*index+1,
+			len(definitionSlice),
+			definitionSlice[*index],
+		)
+	}
+}
+
+func getResponse(word string) {
 	response, err := http.Get("https://api.dictionaryapi.dev/api/v2/entries/en/" + word)
-	if err != nil {
+	if err != nil { // TODO: handle this better
 		log.Fatal(err)
 	}
 
 	responseData, err := io.ReadAll(response.Body)
-	if err != nil {
+	if err != nil { // TODO: handle this better
 		log.Fatal(err)
 	}
-	responseObject, _ := UnmarshalWelcome(responseData)
-
-	return responseObject
+	responseObject, _ = UnmarshalWelcome(responseData)
 }
 
 // isDefined checks if a word is defined in the dictionary
@@ -79,7 +164,9 @@ func IsDefined(word string, wordsWithoutDefinitions map[string]struct{}) bool {
 		return false
 	}
 
-	responseObject := GetResponse(word)
+	if len(responseObject) == 0 || responseObject[0].Word != word {
+		getResponse(word)
+	}
 
 	if len(responseObject) == 0 {
 		addToCache(word, wordsWithoutDefinitions)
@@ -158,23 +245,20 @@ func LoadCache() map[string]struct{} {
 	return cache
 }
 
-func GetDefinition(responseObject Welcome, numDefinitions int) string {
-	if len(responseObject) == 0 {
-		fmt.Println("No definition found.")
-		return ""
-	}
+func GetDefinitionSlice(resposeObject Welcome) []string {
+	definitionSlice := make([]string, 0)
 
-	index := 0
-	returnString := ""
-	for _, meaning := range responseObject[0].Meanings {
+	for _, meaning := range resposeObject[0].Meanings {
 		for _, definitions := range meaning.Definitions {
-			if index == numDefinitions {
-				return returnString
-			}
-
-			returnString += fmt.Sprintf("%s: %s\n", meaning.PartOfSpeech, definitions.Definition)
-			index++
+			definitionString := fmt.Sprintf("%s: %s", meaning.PartOfSpeech, definitions.Definition)
+			definitionSlice = append(definitionSlice, definitionString)
 		}
 	}
-	return returnString
+	return definitionSlice
+}
+
+func GetDefinition(word string) string {
+	getResponse(word)
+
+	return GetFirstDefinition(responseObject)
 }

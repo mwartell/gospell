@@ -1,8 +1,5 @@
 package main
 
-// A simple program demonstrating the text input component from the Bubbles
-// component library.
-
 import (
 	"context"
 	"fmt"
@@ -30,7 +27,6 @@ var debug = true
 
 func main() {
 	credentialFlag := getopt.StringLong("credentials", 'c', "", "Path to Google Cloud credentials JSON file")
-	numDefinitionsFlag := getopt.IntLong("definitions", 'd', 1, "Number of definitions to display")
 	helpFlag := getopt.BoolLong("help", 'h', "display help")
 
 	getopt.Parse()
@@ -43,7 +39,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	model := initialModel(*credentialFlag, *numDefinitionsFlag)
+	model := initialModel(*credentialFlag)
 	model.ctx = ctx
 
 	p := tea.NewProgram(&model, tea.WithAltScreen())
@@ -65,25 +61,25 @@ type correctMessage struct{}
 type incorrectMessage struct{}
 
 type model struct {
-	textInput      textinput.Model
-	client         *texttospeech.Client
-	ctx            context.Context
-	err            error
-	cache          map[string]struct{}
-	babbler        babble.Babbler
-	definition     string
-	numDefinitions int
-	credentialPath string
-	word           string
-	initialTime    time.Time
-	finalTime      time.Time
-	streak         int
-	correction     string
-	width          int
-	height         int
+	textInput       textinput.Model
+	client          *texttospeech.Client
+	ctx             context.Context
+	err             error
+	cache           map[string]struct{}
+	babbler         babble.Babbler
+	definition      string
+	credentialPath  string
+	word            string
+	initialTime     time.Time
+	finalTime       time.Time
+	streak          int
+	correction      string
+	width           int
+	height          int
+	definitionIndex int
 }
 
-func initialModel(credentialPath string, numDefinitions int) model {
+func initialModel(credentialPath string) model {
 	ti := textinput.New()
 	ti.Placeholder = "spell spoken word..."
 	ti.Focus()
@@ -91,25 +87,23 @@ func initialModel(credentialPath string, numDefinitions int) model {
 	ti.Width = 20
 
 	return model{
-		textInput:      ti,
-		client:         nil,
-		ctx:            nil,
-		err:            nil,
-		cache:          make(map[string]struct{}),
-		babbler:        babble.NewBabbler(),
-		definition:     "",
-		credentialPath: credentialPath,
-		word:           "",
-		streak:         0,
-		correction:     "\n",
-		numDefinitions: numDefinitions,
+		textInput:       ti,
+		client:          nil,
+		ctx:             nil,
+		err:             nil,
+		cache:           make(map[string]struct{}),
+		babbler:         babble.NewBabbler(),
+		definition:      "",
+		credentialPath:  credentialPath,
+		word:            "",
+		streak:          0,
+		correction:      "\n",
+		definitionIndex: 0,
 	}
 }
 
 func (m *model) Init() tea.Cmd {
 	if m.credentialPath != "" {
-		var err error
-
 		client, err := texttospeech.NewClient(m.ctx, option.WithCredentialsFile(m.credentialPath))
 		if err != nil {
 			log.Fatal("Bad credentials file")
@@ -124,21 +118,20 @@ func (m *model) Init() tea.Cmd {
 	m.babbler.Count = 1
 
 	m.word = api.GetAcceptableWord(m.babbler, m.cache)
-	res := definition.GetResponse(m.word)
-	m.definition = definition.GetDefinition(res, m.numDefinitions)
+    // m.word = "winded" // this is a good testing word - it has 18 definitions
+	m.definition = definition.GetDefinition(m.word)
 	go tts.SayWord(m.ctx, *m.client, m.word)
 
 	return textinput.Blink
 }
 
-// Command to generate a new word
+// Command to generate a new word.
 func getNewWord(m *model) tea.Cmd {
 	return func() tea.Msg {
 		word := api.GetAcceptableWord(m.babbler, m.cache)
-		res := definition.GetResponse(word)
-		def := definition.GetDefinition(res, m.numDefinitions)
+		def := definition.GetDefinition(word)
 
-		// Play the word audio in a goroutine to avoid blocking
+		// Play the word audio in a goroutine to avoid blocking.
 		go tts.SayWord(m.ctx, *m.client, word)
 
 		return wordMessage{
@@ -152,43 +145,53 @@ func getNewWord(m *model) tea.Cmd {
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case wordMessage:
-		// Update model with new word
+		// Update model with new word.
 		m.word = msg.word
 		m.definition = msg.definition
 		return m, nil
 
 	case tea.KeyMsg:
 		if m.textInput.Value() == "" && msg.Type != tea.KeyCtrlR {
-			m.initialTime = time.Now()
+			m.initialTime = time.Now() // start timer on first key press.
 		}
 
-		m.finalTime = time.Now()
+		m.finalTime = time.Now() // update timer on every key press.
+
 		switch msg.Type {
-		case tea.KeyEnter:
-			// ignoring a blank input
+		case tea.KeyEnter: // submit word.
+			// ignoring a blank input.
 			if m.textInput.Value() == "" {
 				return m, nil
 			}
 
 			userInput := m.textInput.Value()
 			m.textInput.Reset()
+            m.definitionIndex = 0
 
-			if userInput == m.word {
-				// Correct answer
+			if userInput == m.word { // Correct answer.
 				return m, func() tea.Msg { return correctMessage{} }
-			} else {
-				// Incorrect answer
+			} else { // Incorrect answer.
 				return m, func() tea.Msg { return incorrectMessage{} }
 			}
-		case tea.KeyCtrlC, tea.KeyEsc, tea.KeyCtrlD:
+
+		case tea.KeyCtrlC, tea.KeyEsc, tea.KeyCtrlD: // exit.
 			definition.SaveCache(&m.cache)
 			os.Remove("temp.wav")
 			return m, tea.Quit
-		case tea.KeyCtrlR: // repeat word
+
+		case tea.KeyCtrlR: // repeat word.
 			go api.PlayWav("temp.wav")
 			return m, nil
-		case tea.KeyCtrlH: // say what's in the text box
+
+		case tea.KeyCtrlH: // say what's in the text box.
 			go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
+
+		case tea.KeyDown:
+			definition.NextDefinition(&m.definition, &m.definitionIndex)
+			time.Sleep(10)
+		case tea.KeyUp:
+			definition.PrevDefinition(&m.definition, m.word, &m.definitionIndex)
+			time.Sleep(10)
 		}
 
 	case tea.WindowSizeMsg:
@@ -202,7 +205,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		temparr := strings.Split(m.definition, "\n")
 		for index := range temparr {
-            temparr[index] = "\033[32m" + strings.TrimSpace(temparr[index]) + "\033[0m"
+			temparr[index] = "\033[32m" + strings.TrimSpace(temparr[index]) + "\033[0m"
 		}
 		m.definition = strings.Join(temparr, "\n")
 
@@ -216,7 +219,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		temparr := strings.Split(m.definition, "\n")
 		for index := range temparr {
-            temparr[index] = "\033[31m" + strings.TrimSpace(temparr[index]) + "\033[0m"
+			temparr[index] = "\033[31m" + strings.TrimSpace(temparr[index]) + "\033[0m"
 		}
 		m.definition = strings.Join(temparr, "\n")
 
@@ -224,7 +227,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, getNewWord(m)
 	}
 
-	// Handle text input updates
+	// Handle text input updates.
 
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
@@ -232,22 +235,22 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	// Create a container style that will be centered as a whole
+	// Create a container style that will be centered as a whole.
 	containerStyle := lipgloss.NewStyle().Padding(1, 2)
 
-	// Center the welcome text within the container
+	// Center the welcome text within the container.
 	welcomeText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Width(100). // Set a fixed width for the centered elements
+		Width(100). // Set a fixed width for the centered elements.
 		Render("Welcome to gospell!")
 
-	// Center the input field within the container
+	// Center the input field within the container.
 	inputView := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(100).
 		Render(m.textInput.View())
 
-		// Center the definition but keep it within the container's width
+		// Center the definition but keep it within the container's width.
 	definitionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(100).
@@ -258,25 +261,19 @@ func (m model) View() string {
 		Width(100).
 		Render(m.correction)
 
-		// debugText := lipgloss.NewStyle().
-		//     Align(lipgloss.Center).
-		//     Width(100).
-		//     Render(fmt.Sprintf("Word: %s", m.word))
-
 	wpmText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(100).
 		Render(fmt.Sprintf("WPM: %d", wpm.CalculateWpm(m.textInput.Value(), m.initialTime, m.finalTime)))
 
-	// Center the streak counter
+	// Center the streak counter.
 	streakText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(100).
 		Render("Streak: " + fmt.Sprintf("%d", m.streak))
 
-	// Combine all elements with the container style
+	// Combine all elements with the container style.
 	content := containerStyle.Render(
-		// debugText + "\n" +
 		welcomeText + "\n\n" +
 			wpmText + "\n" +
 			inputView + "\n" +
