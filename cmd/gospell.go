@@ -118,7 +118,7 @@ func (m *model) Init() tea.Cmd {
 	m.babbler.Count = 1
 
 	m.word = api.GetAcceptableWord(m.babbler, m.cache)
-    // m.word = "winded" // this is a good testing word - it has 18 definitions
+	// m.word = "winded" // this is a good testing word - it has 18 definitions
 	m.definition = definition.GetDefinition(m.word)
 	go tts.SayWord(m.ctx, *m.client, m.word)
 
@@ -166,7 +166,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			userInput := m.textInput.Value()
 			m.textInput.Reset()
-            m.definitionIndex = 0
+			m.definitionIndex = 0
 
 			if userInput == m.word { // Correct answer.
 				return m, func() tea.Msg { return correctMessage{} }

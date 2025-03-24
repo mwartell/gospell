@@ -53,7 +53,7 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 	}
 
 	// Call the API
-    resp, err := client.SynthesizeSpeech(ctx, &req) // this is confusing but it is two diff functions
+	resp, err := client.SynthesizeSpeech(ctx, &req) // this is confusing but it is two diff functions
 	if err != nil {
 		return nil, err
 	}
