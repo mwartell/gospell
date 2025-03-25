@@ -50,7 +50,7 @@ go build -o gospell
 ./gospell --credentials=/path/to/your-credentials.json
 ```
 
-## 🎮 Usage
+## Usage
 
 ```bash
 # Basic usage
@@ -67,7 +67,7 @@ go build -o gospell
 - **Ctrl+H**: Hear what you've typed so far
 - **Ctrl+C/Ctrl+D/Esc**: Exit the application
 
-## 🔧 Configuration
+## Configuration
 
 GoSpell accepts the following command-line flags:
 
