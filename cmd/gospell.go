@@ -23,8 +23,6 @@ import (
 	"google.golang.org/api/option"
 )
 
-var debug = true
-
 func main() {
 	credentialFlag := getopt.StringLong("credentials", 'c', "", "Path to Google Cloud credentials JSON file")
 	helpFlag := getopt.BoolLong("help", 'h', "display help")
@@ -120,7 +118,12 @@ func (m *model) Init() tea.Cmd {
 	m.word = api.GetAcceptableWord(m.babbler, m.cache)
 	// m.word = "winded" // this is a good testing word - it has 18 definitions
 	m.definition = definition.GetDefinition(m.word)
-	go tts.SayWord(m.ctx, *m.client, m.word)
+
+	if definition.UseRealVoices {
+		go definition.PlayDefinitionAudio(0)
+	} else {
+		go tts.SayWord(m.ctx, *m.client, m.word)
+	}
 
 	return textinput.Blink
 }
@@ -132,7 +135,11 @@ func getNewWord(m *model) tea.Cmd {
 		def := definition.GetDefinition(word)
 
 		// Play the word audio in a goroutine to avoid blocking.
-		go tts.SayWord(m.ctx, *m.client, word)
+		if definition.UseRealVoices {
+			go definition.PlayDefinitionAudio(0)
+		} else {
+			go tts.SayWord(m.ctx, *m.client, word)
+		}
 
 		return wordMessage{
 			word:       word,
@@ -180,7 +187,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyCtrlR: // repeat word.
-			go api.PlayWav("temp.wav")
+			if definition.UseRealVoices {
+				go definition.PlayMp3("./audio/pronunciation0.mp3")
+			} else {
+				definition.PlayWav("./audio/temp.wav")
+			}
 			return m, nil
 
 		case tea.KeyCtrlH: // say what's in the text box.
@@ -188,10 +199,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case tea.KeyDown:
 			definition.NextDefinition(&m.definition, &m.definitionIndex)
-			time.Sleep(10)
 		case tea.KeyUp:
 			definition.PrevDefinition(&m.definition, m.word, &m.definitionIndex)
-			time.Sleep(10)
 		}
 
 	case tea.WindowSizeMsg:
@@ -251,10 +260,10 @@ func (m model) View() string {
 		Render(m.textInput.View())
 
 		// Center the definition but keep it within the container's width.
-	definitionText := lipgloss.NewStyle().
-		Align(lipgloss.Center).
-		Width(100).
-		Render(m.definition)
+	// definitionText := lipgloss.NewStyle().
+	// 	Align(lipgloss.Center).
+	// 	Width(100).
+	// 	Render(m.definition)
 
 	correctionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
@@ -277,7 +286,8 @@ func (m model) View() string {
 		welcomeText + "\n\n" +
 			wpmText + "\n" +
 			inputView + "\n" +
-			definitionText + "\n" +
+			// definitionText + "\n" +
+			wordwrap.String(m.definition, 100) + "\n" +
 			correctionText + "\n" +
 			streakText,
 	)

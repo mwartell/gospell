@@ -3,8 +3,9 @@ package tts
 import (
 	"context"
 	"fmt"
-	"github.com/jharlan-hash/gospell/internal/api"
 	"os"
+
+	"github.com/jharlan-hash/gospell/internal/definition"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
@@ -18,13 +19,13 @@ func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 	}
 
 	// save audio to temporary file
-	tempFile := "temp.wav"
+	tempFile := "./audio/temp.wav"
 	if err := os.WriteFile(tempFile, audioContent, 0644); err != nil {
 		panic(fmt.Sprintf("Failed to write audio content to file: %v", err))
 	}
 
 	// Play the audio
-	if err := api.PlayWav(tempFile); err != nil {
+	if err := definition.PlayWav(tempFile); err != nil {
 		panic(err)
 	}
 }
@@ -41,10 +42,10 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 		// configure voice
 		Voice: &texttospeechpb.VoiceSelectionParams{
 			LanguageCode: "en-US",
-			// Name:         "en-US-Chirp3-HD-Fenrir", // this one makes me laugh bc he's zesty
-			Name: "en-US-Wavenet-D", // this one is more natural
+			Name:         "en-US-Chirp3-HD-Fenrir", // this one makes me laugh bc he's zesty
+			// Name: "en-US-Wavenet-D", // this one is more natural
 			// Name: "en-US-Neural2-J", // this is the og
-			SsmlGender: texttospeechpb.SsmlVoiceGender_FEMALE,
+			SsmlGender: texttospeechpb.SsmlVoiceGender_MALE,
 		},
 		// Configure the audio output
 		AudioConfig: &texttospeechpb.AudioConfig{

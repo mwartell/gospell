@@ -1,16 +1,12 @@
 package api
+// PACKAGE TO BE DEPRECATED
 
 import (
-	"os"
 	"strings"
-	"time"
 	"unicode"
 
 	"github.com/jharlan-hash/gospell/internal/definition"
 
-	"github.com/gopxl/beep"
-	"github.com/gopxl/beep/speaker"
-	"github.com/gopxl/beep/wav"
 	"github.com/tjarratt/babble"
 )
 
@@ -37,26 +33,3 @@ func isLower(s *string) bool {
 	return true
 }
 
-func PlayWav(filepath string) error {
-	f, err := os.Open(filepath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	streamer, format, err := wav.Decode(f)
-	if err != nil {
-		return err
-	}
-	defer streamer.Close()
-
-	sr := format.SampleRate
-	speaker.Init(sr, sr.N(time.Second/10))
-
-	done := make(chan bool)
-	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
-		done <- true
-	})))
-	<-done
-	return nil
-}
