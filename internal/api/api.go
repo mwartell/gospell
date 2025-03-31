@@ -1,35 +1,44 @@
 package api
-// PACKAGE TO BE DEPRECATED
 
 import (
-	"strings"
-	"unicode"
-
-	"github.com/jharlan-hash/gospell/internal/definition"
-
-	"github.com/tjarratt/babble"
+	"bufio"
+	"log"
+	"math/rand"
+	"os"
+	"time"
 )
 
-func GetAcceptableWord(babbler babble.Babbler, cache map[string]struct{}) string {
-	for {
-		word := babbler.Babble()
-		if isAcceptableWord(word, cache) {
-			return word
-		}
+func GetAcceptableWord() string {
+	return getRandomLineFromWordlist()
+}
+
+// From The Art of Computer Programming, Volume 2, Section 3.4.2, by Donald E. Knuth.
+// This is a reservoir sampling algorithm that picks a random line from a file.
+func getRandomLineFromWordlist() string {
+	file, err := os.Open("pywordlist.txt")
+	if err != nil {
+		log.Fatal(err)
 	}
-}
+	defer file.Close()
 
-// Acceptable words are lowercase and contain no special characters & are defined in the dictionary
-func isAcceptableWord(word string, cache map[string]struct{}) bool {
-	return !strings.ContainsAny(word, "-_'") && isLower(&word) && definition.IsDefined(word, cache)
-}
+	scanner := bufio.NewScanner(file)
 
-func isLower(s *string) bool {
-	for _, r := range *s {
-		if !unicode.IsLower(r) && unicode.IsLetter(r) {
-			return false
+	randsource := rand.NewSource(time.Now().UnixNano())
+	randgenerator := rand.New(randsource)
+
+	lineNum := 1
+	var pick string
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Instead of 1 to N it's 0 to N-1
+		roll := randgenerator.Intn(lineNum)
+		if roll == 0 {
+			// We pick this line
+			pick = line
 		}
-	}
-	return true
-}
 
+		lineNum += 1
+	}
+
+	return pick
+}
