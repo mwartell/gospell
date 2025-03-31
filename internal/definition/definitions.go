@@ -81,9 +81,5 @@ func (m *State) GetDefinition(word string) string {
 	m.index = 0
 	m.getDefinitionList() // populate the definitions list
 
-	if len(m.definitions) == 0 {
-		panic(fmt.Sprintf("No definitions found for the word: %s", word)) // this SHOULD never happen if the cache is loaded correctly
-	}
-
 	return m.definitions[m.index] // return the first definition
 }
