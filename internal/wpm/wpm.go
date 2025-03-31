@@ -11,7 +11,7 @@ var wpm int
 // It takes a word (string), the initial time (time.Time), and the final time (time.Time) as input.
 // It returns the calculated WPM as an integer.
 func CalculateWpm(word string, initialTime time.Time, finalTime time.Time) int {
-	// If the word is empty, return the last calulated wpm
+	// If the word is empty, return the last calculated wpm
 	if word == "" {
 		return wpm
 	}

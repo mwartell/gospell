@@ -29,9 +29,7 @@ func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 	}
 
 	// Play the audio
-	if err := definition.PlayWav(tempFile); err != nil {
-		panic(err)
-	}
+    definition.PlayWav(tempFile)
 }
 
 // synthesizeSpeech takes a context, a text-to-speech client, and a string of text.

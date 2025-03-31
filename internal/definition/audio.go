@@ -1,6 +1,7 @@
 package definition
 
 import (
+	"log"
 	"os"
 	"time"
 
@@ -10,16 +11,16 @@ import (
 )
 
 // PlayWav plays a WAV file using the beep library.
-func PlayWav(filepath string) error {
+func PlayWav(filepath string) {
 	f, err := os.Open(filepath)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	defer f.Close()
 
 	streamer, format, err := wav.Decode(f)
 	if err != nil {
-		return err
+        log.Fatal(err)
 	}
 	defer streamer.Close()
 
@@ -31,5 +32,4 @@ func PlayWav(filepath string) error {
 		done <- true
 	})))
 	<-done
-	return nil
 }

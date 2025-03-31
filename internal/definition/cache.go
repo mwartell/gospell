@@ -12,7 +12,7 @@ import (
 func LoadCache() Dictionary {
 	file := "texts/wordmap.gob"
 
-    f, err := os.Open(file)
+	f, err := os.Open(file)
 	if err != nil {
 		log.Fatal("Error opening cache file:", err)
 	}

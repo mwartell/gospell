@@ -45,10 +45,6 @@ func main() {
 	}
 }
 
-type (
-	errMsg error
-)
-
 type wordMessage struct {
 	word       string
 	definition string
@@ -142,19 +138,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.Type {
 		case tea.KeyEnter: // submit word while ignoring empty input.
-			if m.textInput.Value() == "" {
-				return m, nil
-			}
-
-			userInput := m.textInput.Value()
-			m.textInput.Reset()
-
-			if userInput == m.word { // Correct answer.
-				return m, func() tea.Msg { return correctMessage{} }
-			} else { // Incorrect answer.
-				return m, func() tea.Msg { return incorrectMessage{} }
-			}
-
+			return m.submitWord()
 		case tea.KeyCtrlC, tea.KeyEsc, tea.KeyCtrlD: // exit.
 			os.Remove("temp.wav")
 			return m, tea.Quit
@@ -207,6 +191,22 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd
+}
+
+func (m *model) submitWord() (tea.Model, tea.Cmd) {
+	if m.textInput.Value() == "" {
+		return m, nil
+	}
+
+	userInput := m.textInput.Value()
+	m.textInput.Reset()
+
+	if userInput == m.word { // Correct answer.
+		return m, func() tea.Msg { return correctMessage{} }
+	} else { // Incorrect answer.
+		return m, func() tea.Msg { return incorrectMessage{} }
+	}
+
 }
 
 func (m model) View() string {
