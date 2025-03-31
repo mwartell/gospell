@@ -229,8 +229,7 @@ func (m model) View() string {
 	welcomeText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(100). // Set a fixed width for the centered elements.
-		Render("Welcome to goonspell!")
-
+		Render("Welcome to gospell!")
 	// Center the input field within the container.
 	inputView := lipgloss.NewStyle().
 		Align(lipgloss.Center).
