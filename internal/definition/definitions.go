@@ -2,79 +2,78 @@ package definition
 
 import "fmt"
 
-func GetDefinitionSlice(resposeObject Welcome) []string {
-	definitionSlice := make([]string, 0)
-
-	for _, meaning := range resposeObject[0].Meanings {
-		for _, definitions := range meaning.Definitions {
-			definitionString := fmt.Sprintf("%s: %s", meaning.PartOfSpeech, definitions.Definition)
-			definitionSlice = append(definitionSlice, definitionString)
-		}
-	}
-	return definitionSlice
+type State struct {
+	cache       Dictionary
+	word        string
+	index       int
+	definitions []string
 }
 
-func GetFirstDefinition(res Welcome) string {
-	slice := GetDefinitionSlice(res)
-	slice[0] = fmt.Sprintf("(1 of %d) %s", len(slice), slice[0])
-	return slice[0]
-}
+// getDefinitionList returns a list of definitions for a given word from the cache.
+func (s *State) getDefinitionList() {
+	definitions := s.cache[s.word]
+	list := make([]string, 0)
 
-func NextDefinition(definition *string, index *int) {
-	if len(responseObject) == 0 {
-		return
-	}
-
-	definitionSlice := GetDefinitionSlice(responseObject)
-
-	if *index+1 >= len(definitionSlice) { // if user requests something past the end of the definition list
-		*definition = fmt.Sprintf(
-			"(%d of %d) %s",
-			len(definitionSlice),
-			len(definitionSlice),
-			definitionSlice[len(definitionSlice)-1],
+	for _, definition := range definitions {
+		list = append(list,
+			fmt.Sprintf(
+				"(%d of %d) %s: %s",
+				definition.DefinitionIndex,
+				definition.NumDefinitions,
+				definition.PartOfSpeech,
+				definition.Definition,
+			),
 		)
-		return
+	}
+
+	s.definitions = list // store the definitions in the state
+}
+
+func (s *State) NextDefinition() string {
+	if s.index+1 >= len(s.definitions) { // if user requests something past the end of the definition list
+		return s.definitions[len(s.definitions)-1] // return the last definition
 	} else { // increment index & change definition
-		*index++
-		*definition = fmt.Sprintf(
-			"(%d of %d) %s",
-			*index+1,
-			len(definitionSlice),
-			definitionSlice[*index],
-		)
-		return
+		s.index++
+		return s.definitions[s.index]
 	}
 }
 
-func PrevDefinition(definition *string, word string, index *int) {
-	if len(responseObject) == 0 {
-		return
-	}
-
-	definitionSlice := GetDefinitionSlice(responseObject)
-
-	if *index <= 0 { // if the user requests something before the start of the list
-		*index = 0
-		*definition = fmt.Sprintf(
-			"(%d of %d) %s",
-			1,
-			len(definitionSlice),
-			definitionSlice[0],
-		)
-	} else {
-		*index--
-		*definition = fmt.Sprintf(
-			"(%d of %d) %s",
-			*index+1,
-			len(definitionSlice),
-			definitionSlice[*index],
-		)
+func (s *State) PrevDefinition() string {
+	if s.index-1 < 0 { // if user requests something before the beginning of the definition list
+		return s.definitions[0] // return the first definition
+	} else { // decrement index & change definition
+		s.index--
+		return s.definitions[s.index]
 	}
 }
 
-func GetDefinition(word string) string {
-	getResponse(word)
+// GetDefinition retrieves the first definition of a word from the cache.
+//
+// How To Use:
+//
+// 1. Create a new State instance.
+//
+// 2. Call GetDefinition with the word you want to look up.
+//
+// 3. Use NextDefinition() and PrevDefinition() to navigate through the definitions.
+//
+// Example:
+//   state := &definition.State{}
+//   firstDef := state.GetDefinition("example") // retrieves the first definition
+//   fmt.Println(firstDef) // prints the first definition
+//   nextDef := state.NextDefinition() // retrieves the next definition
+//   fmt.Println(nextDef) // prints the next definition
+//   prevDef := state.PrevDefinition() // retrieves the previous definition
+//   fmt.Println(prevDef) // prints the previous definition
+func (m *State) GetDefinition(word string) string {
+	m.cache = LoadCache()
+	m.word = word
+	m.index = 0
+	m.getDefinitionList() // populate the definitions list
 
-	return GetFirstDefinition(responseObject)
+	if len(m.definitions) == 0 {
+		panic(fmt.Sprintf("No definitions found for the word: %s", word)) // this SHOULD never happen if the cache is loaded correctly
+	}
+
+	return m.definitions[m.index] // return the first definition
 }

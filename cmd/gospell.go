@@ -19,7 +19,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/pborman/getopt"
-	"github.com/tjarratt/babble"
 	"google.golang.org/api/option"
 )
 
@@ -63,8 +62,6 @@ type model struct {
 	client          *texttospeech.Client
 	ctx             context.Context
 	err             error
-	cache           map[string]struct{}
-	babbler         babble.Babbler
 	definition      string
 	credentialPath  string
 	word            string
@@ -74,7 +71,7 @@ type model struct {
 	correction      string
 	width           int
 	height          int
-	definitionIndex int
+	definitionState *definition.State
 }
 
 func initialModel(credentialPath string) model {
@@ -89,14 +86,12 @@ func initialModel(credentialPath string) model {
 		client:          nil,
 		ctx:             nil,
 		err:             nil,
-		cache:           make(map[string]struct{}),
-		babbler:         babble.NewBabbler(),
 		definition:      "",
 		credentialPath:  credentialPath,
 		word:            "",
 		streak:          0,
 		correction:      "\n",
-		definitionIndex: 0,
+		definitionState: &definition.State{},
 	}
 }
 
@@ -112,18 +107,9 @@ func (m *model) Init() tea.Cmd {
 		log.Fatal("No credentials file provided")
 	}
 
-	m.cache = definition.LoadCache()
-	m.babbler.Count = 1
-
-	m.word = api.GetAcceptableWord(m.babbler, m.cache)
-	// m.word = "winded" // this is a good testing word - it has 18 definitions
-	m.definition = definition.GetDefinition(m.word)
-
-	if definition.UseRealVoices {
-		go definition.PlayDefinitionAudio(0)
-	} else {
-		go tts.SayWord(m.ctx, *m.client, m.word)
-	}
+	m.word = api.GetAcceptableWord()
+	m.definition = m.definitionState.GetDefinition(m.word)
+	go tts.SayWord(m.ctx, *m.client, m.word)
 
 	return textinput.Blink
 }
@@ -131,15 +117,11 @@ func (m *model) Init() tea.Cmd {
 // Command to generate a new word.
 func getNewWord(m *model) tea.Cmd {
 	return func() tea.Msg {
-		word := api.GetAcceptableWord(m.babbler, m.cache)
-		def := definition.GetDefinition(word)
+		word := api.GetAcceptableWord()
+		def := m.definitionState.GetDefinition(word)
 
 		// Play the word audio in a goroutine to avoid blocking.
-		if definition.UseRealVoices {
-			go definition.PlayDefinitionAudio(0)
-		} else {
-			go tts.SayWord(m.ctx, *m.client, word)
-		}
+		go tts.SayWord(m.ctx, *m.client, word)
 
 		return wordMessage{
 			word:       word,
@@ -173,7 +155,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			userInput := m.textInput.Value()
 			m.textInput.Reset()
-			m.definitionIndex = 0
 
 			if userInput == m.word { // Correct answer.
 				return m, func() tea.Msg { return correctMessage{} }
@@ -182,25 +163,22 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case tea.KeyCtrlC, tea.KeyEsc, tea.KeyCtrlD: // exit.
-			definition.SaveCache(&m.cache)
 			os.Remove("temp.wav")
 			return m, tea.Quit
 
 		case tea.KeyCtrlR: // repeat word.
-			if definition.UseRealVoices {
-				go definition.PlayMp3("./audio/pronunciation0.mp3")
-			} else {
-				definition.PlayWav("./audio/temp.wav")
-			}
+			definition.PlayWav("./audio/temp.wav")
 			return m, nil
 
 		case tea.KeyCtrlH: // say what's in the text box.
 			go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
 
 		case tea.KeyDown:
-			definition.NextDefinition(&m.definition, &m.definitionIndex)
+			// If the user presses down, we want to get the next definition.
+			m.definition = m.definitionState.NextDefinition()
 		case tea.KeyUp:
-			definition.PrevDefinition(&m.definition, m.word, &m.definitionIndex)
+			// If the user presses up, we want to get the previous definition.
+			m.definition = m.definitionState.PrevDefinition()
 		}
 
 	case tea.WindowSizeMsg:
@@ -252,7 +230,6 @@ func (m model) View() string {
 		Align(lipgloss.Center).
 		Width(100). // Set a fixed width for the centered elements.
 		Render("Welcome to gospell!")
-
 	// Center the input field within the container.
 	inputView := lipgloss.NewStyle().
 		Align(lipgloss.Center).
