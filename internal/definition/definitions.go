@@ -10,6 +10,8 @@ type State struct {
 }
 
 // getDefinitionList returns a list of definitions for a given word from the cache.
+// It populates the definitions field in the State struct.
+// This function is called internally by GetDefinition to initialize the definitions list.
 func (s *State) getDefinitionList() {
 	definitions := s.cache[s.word]
 	list := make([]string, 0)
@@ -29,6 +31,8 @@ func (s *State) getDefinitionList() {
 	s.definitions = list // store the definitions in the state
 }
 
+// NextDefinition retrieves the next definition of a word from the cache.
+// If the user requests a definition past the last one, it returns the last definition.
 func (s *State) NextDefinition() string {
 	if s.index+1 >= len(s.definitions) { // if user requests something past the end of the definition list
 		return s.definitions[len(s.definitions)-1] // return the last definition
@@ -38,6 +42,8 @@ func (s *State) NextDefinition() string {
 	}
 }
 
+// PrevDefinition retrieves the previous definition of a word from the cache.
+// If the user requests a definition before the first one, it returns the first definition.
 func (s *State) PrevDefinition() string {
 	if s.index-1 < 0 { // if user requests something before the beginning of the definition list
 		return s.definitions[0] // return the first definition

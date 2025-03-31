@@ -61,7 +61,6 @@ type model struct {
 	textInput       textinput.Model
 	client          *texttospeech.Client
 	ctx             context.Context
-	err             error
 	definition      string
 	credentialPath  string
 	word            string
@@ -74,6 +73,7 @@ type model struct {
 	definitionState *definition.State
 }
 
+// initialModel initializes the model with a text input field and a random word.
 func initialModel(credentialPath string) model {
 	ti := textinput.New()
 	ti.Placeholder = "spell spoken word..."
@@ -81,17 +81,14 @@ func initialModel(credentialPath string) model {
 	ti.CharLimit = 156
 	ti.Width = 20
 
+    state := &definition.State{}
 	return model{
 		textInput:       ti,
-		client:          nil,
-		ctx:             nil,
-		err:             nil,
-		definition:      "",
 		credentialPath:  credentialPath,
-		word:            "",
-		streak:          0,
 		correction:      "\n",
-		definitionState: &definition.State{},
+        word:            api.GetAcceptableWord(),
+		definitionState: state,
+        definition:      state.GetDefinition(api.GetAcceptableWord()),
 	}
 }
 
@@ -107,10 +104,7 @@ func (m *model) Init() tea.Cmd {
 		log.Fatal("No credentials file provided")
 	}
 
-	m.word = api.GetAcceptableWord()
-	m.definition = m.definitionState.GetDefinition(m.word)
 	go tts.SayWord(m.ctx, *m.client, m.word)
-
 	return textinput.Blink
 }
 
@@ -147,8 +141,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.finalTime = time.Now() // update timer on every key press.
 
 		switch msg.Type {
-		case tea.KeyEnter: // submit word.
-			// ignoring a blank input.
+		case tea.KeyEnter: // submit word while ignoring empty input.
 			if m.textInput.Value() == "" {
 				return m, nil
 			}
@@ -169,10 +162,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlR: // repeat word.
 			definition.PlayWav("./audio/temp.wav")
 			return m, nil
-
-		case tea.KeyCtrlH: // say what's in the text box.
-			go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
-
+		// case tea.KeyCtrlH: // say what's in the text box.
+		// 	go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
 		case tea.KeyDown:
 			// If the user presses down, we want to get the next definition.
 			m.definition = m.definitionState.NextDefinition()
@@ -215,7 +206,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handle text input updates.
-
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd
@@ -230,6 +220,7 @@ func (m model) View() string {
 		Align(lipgloss.Center).
 		Width(100). // Set a fixed width for the centered elements.
 		Render("Welcome to gospell!")
+
 	// Center the input field within the container.
 	inputView := lipgloss.NewStyle().
 		Align(lipgloss.Center).
@@ -237,10 +228,10 @@ func (m model) View() string {
 		Render(m.textInput.View())
 
 		// Center the definition but keep it within the container's width.
-	// definitionText := lipgloss.NewStyle().
-	// 	Align(lipgloss.Center).
-	// 	Width(100).
-	// 	Render(m.definition)
+	definitionText := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(100).
+		Render(m.definition)
 
 	correctionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
@@ -263,8 +254,8 @@ func (m model) View() string {
 		welcomeText + "\n\n" +
 			wpmText + "\n" +
 			inputView + "\n" +
-			// definitionText + "\n" +
-			wordwrap.String(m.definition, 100) + "\n" +
+			definitionText + "\n" +
+			// wordwrap.String(m.definition, 100) + "\n" +
 			correctionText + "\n" +
 			streakText,
 	)

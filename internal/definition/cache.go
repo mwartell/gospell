@@ -7,8 +7,10 @@ import (
 	"os"
 )
 
+// LoadCache loads the wordmap cache from a file.
+// It returns a Dictionary, which is a map of words to their definitions.
 func LoadCache() Dictionary {
-	file := "wordmap.gob"
+	file := "texts/wordmap.gob"
 
     f, err := os.Open(file)
 	if err != nil {

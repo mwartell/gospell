@@ -9,7 +9,9 @@ import (
 	"github.com/gopxl/beep/wav"
 )
 
+// PlayWav plays a WAV file using the beep library.
 func PlayWav(filepath string) error {
+    os.MkdirAll("audio", os.ModePerm) // ensure the audio directory exists
 	f, err := os.Open(filepath)
 	if err != nil {
 		return err

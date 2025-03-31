@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// GetAcceptableWord returns a random word from the wordlist.
 func GetAcceptableWord() string {
 	return getRandomLineFromWordlist()
 }
@@ -15,7 +16,7 @@ func GetAcceptableWord() string {
 // From The Art of Computer Programming, Volume 2, Section 3.4.2, by Donald E. Knuth.
 // This is a reservoir sampling algorithm that picks a random line from a file.
 func getRandomLineFromWordlist() string {
-	file, err := os.Open("pywordlist.txt")
+	file, err := os.Open("texts/wordlist.txt")
 	if err != nil {
 		log.Fatal(err)
 	}

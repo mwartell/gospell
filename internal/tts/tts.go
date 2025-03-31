@@ -11,6 +11,10 @@ import (
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
 )
 
+// SayWord takes a word and uses the Google Cloud Text-to-Speech API to generate and play the audio for that word.
+// It requires a context and a text-to-speech client.
+// It saves the audio to a temporary file and plays it using the definition.PlayWav function.
+// If any error occurs during synthesis or playback, it panics with an error message.
 func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 	// call tts api
 	audioContent, err := synthesizeSpeech(ctx, &client, word)
@@ -30,7 +34,8 @@ func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 	}
 }
 
-// synthesizeSpeech calls the Google Cloud Text-to-Speech API to generate speech
+// synthesizeSpeech takes a context, a text-to-speech client, and a string of text.
+// It configures the synthesis request with the desired voice and audio output format.
 func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text string) ([]byte, error) {
 	// set up request
 	req := texttospeechpb.SynthesizeSpeechRequest{
