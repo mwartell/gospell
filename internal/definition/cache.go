@@ -8,7 +8,7 @@ import (
 )
 
 // LoadCache loads the wordmap cache from a file.
-// It returns a Dictionary, which is a map of words to their definitions.
+// It returns a Dictionary, which is a map of words to an Entry slice.
 func LoadCache() Dictionary {
 	file := "texts/wordmap.gob"
 

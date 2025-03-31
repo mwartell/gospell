@@ -81,14 +81,14 @@ func initialModel(credentialPath string) model {
 	ti.CharLimit = 156
 	ti.Width = 20
 
-    state := &definition.State{}
+	state := &definition.State{}
 	return model{
 		textInput:       ti,
 		credentialPath:  credentialPath,
 		correction:      "\n",
-        word:            api.GetAcceptableWord(),
+		word:            api.GetAcceptableWord(),
 		definitionState: state,
-        definition:      state.GetDefinition(api.GetAcceptableWord()),
+		definition:      state.GetDefinition(api.GetAcceptableWord()),
 	}
 }
 
@@ -160,13 +160,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyCtrlR: // repeat word.
-			definition.PlayWav("./audio/temp.wav")
+			go definition.PlayWav("./audio/temp.wav")
 			return m, nil
-		// case tea.KeyCtrlH: // say what's in the text box.
-		// 	go tts.SayWord(m.ctx, *m.client, m.textInput.Value())
+
 		case tea.KeyDown:
 			// If the user presses down, we want to get the next definition.
 			m.definition = m.definitionState.NextDefinition()
+
 		case tea.KeyUp:
 			// If the user presses up, we want to get the previous definition.
 			m.definition = m.definitionState.PrevDefinition()
@@ -178,29 +178,27 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case correctMessage:
 		m.streak++
-
 		m.definition = wordwrap.String(m.definition, 100)
 
 		temparr := strings.Split(m.definition, "\n")
 		for index := range temparr {
 			temparr[index] = "\033[32m" + strings.TrimSpace(temparr[index]) + "\033[0m"
 		}
-		m.definition = strings.Join(temparr, "\n")
 
+		m.definition = strings.Join(temparr, "\n")
 		m.correction = "\n"
 		return m, getNewWord(m)
 
 	case incorrectMessage:
 		m.streak = 0
-
 		m.definition = wordwrap.String(m.definition, 100)
 
 		temparr := strings.Split(m.definition, "\n")
 		for index := range temparr {
 			temparr[index] = "\033[31m" + strings.TrimSpace(temparr[index]) + "\033[0m"
 		}
-		m.definition = strings.Join(temparr, "\n")
 
+		m.definition = strings.Join(temparr, "\n")
 		m.correction = fmt.Sprintf("\nCorrect spelling: %s", m.word)
 		return m, getNewWord(m)
 	}

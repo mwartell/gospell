@@ -17,6 +17,19 @@ func (s *State) getDefinitionList() {
 	list := make([]string, 0)
 
 	for _, definition := range definitions {
+		switch definition.PartOfSpeech {
+		    case "n":
+		    	definition.PartOfSpeech = "noun"
+		    case "v":
+		    	definition.PartOfSpeech = "verb"
+		    case "a":
+		    	definition.PartOfSpeech = "adjective"
+		    case "r":
+		    	definition.PartOfSpeech = "adverb"
+		    case "s":
+			    definition.PartOfSpeech = "adjective"
+		}
+
 		list = append(list,
 			fmt.Sprintf(
 				"(%d of %d) %s: %s",
@@ -64,15 +77,19 @@ func (s *State) PrevDefinition() string {
 // 3. Use NextDefinition() and PrevDefinition() to navigate through the definitions.
 //
 // Example:
-//   state := &definition.State{}
-//   firstDef := state.GetDefinition("example") // retrieves the first definition
-//   fmt.Println(firstDef) // prints the first definition
-//   nextDef := state.NextDefinition() // retrieves the next definition
-//   fmt.Println(nextDef) // prints the next definition
-//   prevDef := state.PrevDefinition() // retrieves the previous definition
-//   fmt.Println(prevDef) // prints the previous definition
+//
+//	state := &definition.State{}
+//	firstDef := state.GetDefinition("example") // retrieves the first definition
+//	fmt.Println(firstDef) // prints the first definition
+//	nextDef := state.NextDefinition() // retrieves the next definition
+//	fmt.Println(nextDef) // prints the next definition
+//	prevDef := state.PrevDefinition() // retrieves the previous definition
+//	fmt.Println(prevDef) // prints the previous definition
 func (m *State) GetDefinition(word string) string {
-	m.cache = LoadCache()
+	if m.cache == nil {
+		m.cache = LoadCache()
+	}
+
 	m.word = word
 	m.index = 0
 	m.getDefinitionList() // populate the definitions list
