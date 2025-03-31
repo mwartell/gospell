@@ -10,7 +10,8 @@ import (
 
 // GetAcceptableWord returns a random word from the wordlist.
 func GetAcceptableWord() string {
-    time.Sleep(100 * time.Millisecond) // To ensure randomness
+    var timeBetweenWords = 100 * time.Millisecond
+    time.Sleep(timeBetweenWords) // Sleep to allow time for the user to see feedback
 	return getRandomLineFromWordlist()
 }
 

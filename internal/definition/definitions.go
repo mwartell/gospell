@@ -13,23 +13,10 @@ type State struct {
 // It populates the definitions field in the State struct.
 // This function is called internally by GetDefinition to initialize the definitions list.
 func (s *State) getDefinitionList() {
-	definitions := s.cache[s.word]
+	definitions := s.cache[s.word] // O(1) lookup which is so cool
 	list := make([]string, 0)
 
 	for _, definition := range definitions {
-		switch definition.PartOfSpeech {
-		    case "n":
-		    	definition.PartOfSpeech = "noun"
-		    case "v":
-		    	definition.PartOfSpeech = "verb"
-		    case "a":
-		    	definition.PartOfSpeech = "adjective"
-		    case "r":
-		    	definition.PartOfSpeech = "adverb"
-		    case "s":
-			    definition.PartOfSpeech = "adjective"
-		}
-
 		list = append(list,
 			fmt.Sprintf(
 				"(%d of %d) %s: %s",
@@ -86,7 +73,7 @@ func (s *State) PrevDefinition() string {
 //	prevDef := state.PrevDefinition() // retrieves the previous definition
 //	fmt.Println(prevDef) // prints the previous definition
 func (m *State) GetDefinition(word string) string {
-	if m.cache == nil {
+	if m.cache == nil { // Only load the cache if it's not already loaded.
 		m.cache = LoadCache()
 	}
 
