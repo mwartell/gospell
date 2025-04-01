@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 )
+
 //go:embed wordmap.gob
 var fs embed.FS
 

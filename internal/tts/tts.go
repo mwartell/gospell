@@ -38,7 +38,7 @@ func (t *TTS) SayWord() {
 	} else {
 		audioContent, err := t.synthesizeSpeech()
 		if err != nil {
-            log.Fatalf("Failed to synthesize speech: %v", err)
+			log.Fatalf("Failed to synthesize speech: %v", err)
 		}
 
 		t.audio.AudioContent = audioContent

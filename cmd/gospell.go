@@ -225,7 +225,7 @@ func (m *model) submitWord() (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	// Create a container style that will be centered as a whole.
 	containerStyle := lipgloss.NewStyle().Padding(1, 2)
-    width := 100
+	width := 100
 
 	// Center the welcome text within the container.
 	welcomeText := lipgloss.NewStyle().
