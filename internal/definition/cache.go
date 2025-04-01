@@ -1,22 +1,21 @@
 package definition
 
 import (
+	"embed"
 	"encoding/gob"
 	"fmt"
 	"log"
-	"os"
 )
+//go:embed wordmap.gob
+var fs embed.FS
 
 // LoadCache loads the wordmap cache from a file.
 // It returns a Dictionary, which is a map of words to an Entry slice.
 func LoadCache() Dictionary {
-	file := "texts/wordmap.gob"
-
-	f, err := os.Open(file)
+	f, err := fs.Open("wordmap.gob")
 	if err != nil {
-		log.Fatal("Error opening cache file:", err)
+		log.Fatal(err)
 	}
-	defer f.Close()
 
 	enc := gob.NewDecoder(f)
 	cache := make(Dictionary)

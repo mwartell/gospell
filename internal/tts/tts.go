@@ -1,14 +1,18 @@
 package tts
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"os"
 
-	"github.com/jharlan-hash/gospell/internal/definition"
+	"log"
+	"time"
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
+	"github.com/gopxl/beep"
+	"github.com/gopxl/beep/speaker"
+	"github.com/gopxl/beep/wav"
 )
 
 // SayWord takes a word and uses the Google Cloud Text-to-Speech API to generate and play the audio for that word.
@@ -22,14 +26,22 @@ func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 		panic(fmt.Sprintf("Failed to synthesize speech: %v", err))
 	}
 
-	// save audio to temporary file
-	tempFile := "./audio/temp.wav"
-	if err := os.WriteFile(tempFile, audioContent, 0644); err != nil {
-		panic(fmt.Sprintf("Failed to write audio content to file: %v", err))
-	}
-
+	r := bytes.NewReader(audioContent)
 	// Play the audio
-    definition.PlayWav(tempFile)
+	streamer, format, err := wav.Decode(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer streamer.Close()
+
+	sr := format.SampleRate
+	speaker.Init(sr, sr.N(time.Second/10))
+
+	done := make(chan bool)
+	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
+		done <- true
+	})))
+	<-done
 }
 
 // synthesizeSpeech takes a context, a text-to-speech client, and a string of text.

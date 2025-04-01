@@ -92,11 +92,13 @@ func (m *model) Init() tea.Cmd {
 	if m.credentialPath != "" {
 		client, err := texttospeech.NewClient(m.ctx, option.WithCredentialsFile(m.credentialPath))
 		if err != nil {
+			tea.ExitAltScreen()
 			log.Fatal("Bad credentials file")
 		}
 
 		m.client = client
 	} else {
+		tea.ExitAltScreen()
 		log.Fatal("No credentials file provided")
 	}
 
@@ -144,7 +146,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyCtrlR: // repeat word.
-			go definition.PlayWav("./audio/temp.wav")
+            go tts.SayWord(m.ctx, *m.client, m.word)
 			return m, nil
 
 		case tea.KeyDown:
