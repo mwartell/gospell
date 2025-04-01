@@ -3,7 +3,6 @@ package tts
 import (
 	"bytes"
 	"context"
-	"fmt"
 
 	"log"
 	"time"
@@ -15,18 +14,43 @@ import (
 	"github.com/gopxl/beep/wav"
 )
 
-// SayWord takes a word and uses the Google Cloud Text-to-Speech API to generate and play the audio for that word.
-// It requires a context and a text-to-speech client.
-// It saves the audio to a temporary file and plays it using the definition.PlayWav function.
-// If any error occurs during synthesis or playback, it panics with an error message.
-func SayWord(ctx context.Context, client texttospeech.Client, word string) {
-	// call tts api
-	audioContent, err := synthesizeSpeech(ctx, &client, word)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to synthesize speech: %v", err))
-	}
+type TTS struct {
+	Client *texttospeech.Client
+	Ctx    context.Context
+	Word   string
+	audio  audioMessage
+}
 
-	r := bytes.NewReader(audioContent)
+type audioMessage struct {
+	AudioContent []byte
+	Word         string
+}
+
+// SayWord takes a word and uses the Google Cloud Text-to-Speech API to generate and play the audio for that word.
+// It checks if the audio for the word is already generated and stored in the audioMessage struct.
+// If the audio is already generated, it plays the audio directly without calling the API again.
+// If the audio is not generated, it calls the API to synthesize the speech and then plays the audio.
+func (t *TTS) SayWord() {
+	// call tts api
+	if t.audio.Word == t.Word {
+		// no need to call the API again, play the audio
+		t.PlayAudio()
+	} else {
+		audioContent, err := t.synthesizeSpeech()
+		if err != nil {
+            log.Fatalf("Failed to synthesize speech: %v", err)
+		}
+
+		t.audio.AudioContent = audioContent
+		t.audio.Word = t.Word
+
+		// play the audio
+		t.PlayAudio()
+	}
+}
+
+func (t *TTS) PlayAudio() {
+	r := bytes.NewReader(t.audio.AudioContent)
 	// Play the audio
 	streamer, format, err := wav.Decode(r)
 	if err != nil {
@@ -44,14 +68,15 @@ func SayWord(ctx context.Context, client texttospeech.Client, word string) {
 	<-done
 }
 
-// synthesizeSpeech takes a context, a text-to-speech client, and a string of text.
-// It configures the synthesis request with the desired voice and audio output format.
-func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text string) ([]byte, error) {
+// synthesizeSpeech uses the Google Cloud Text-to-Speech API to synthesize speech from the given word.
+// It creates a request with the word, voice parameters, and audio configuration.
+// It then calls the API and returns the synthesized audio content.
+func (t *TTS) synthesizeSpeech() ([]byte, error) {
 	// set up request
 	req := texttospeechpb.SynthesizeSpeechRequest{
 		Input: &texttospeechpb.SynthesisInput{
 			InputSource: &texttospeechpb.SynthesisInput_Text{
-				Text: text,
+				Text: t.Word,
 			},
 		},
 		// configure voice
@@ -69,7 +94,7 @@ func synthesizeSpeech(ctx context.Context, client *texttospeech.Client, text str
 	}
 
 	// Call the API
-	resp, err := client.SynthesizeSpeech(ctx, &req) // this is confusing but it is two diff functions
+	resp, err := t.Client.SynthesizeSpeech(t.Ctx, &req)
 	if err != nil {
 		return nil, err
 	}
