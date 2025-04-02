@@ -8,7 +8,7 @@ GoSpell is a terminal-based spelling practice application that uses text-to-spee
 
 ## Overview
 
-GoSpell is an interactive CLI spelling practice tool that:
+GoSpell is an interactive TUI spelling practice tool that:
 
 - Speaks words aloud using Google Cloud Text-to-Speech
 - Provides word definitions to help with context
@@ -23,7 +23,6 @@ I think it would be great for students, language learners, or anyone that wants 
 - **Word Definitions**: See word definitions to hopefully understand context and meaning
 - **Progress Tracking**: Keep track of your spelling streak
 - **Pretty good TUI**: Clean terminal user interface using [Bubble Tea](https://github.com/charmbracelet/bubbletea)
-- **Word Caching**: Caches dictionary lookups between sessions to increase speed over time
 
 ## Installation
 
@@ -55,16 +54,12 @@ go build -o gospell
 ```bash
 # Basic usage
 ./gospell --credentials=/path/to/your-credentials.json
-
-# Display multiple definitions
-./gospell --credentials=/path/to/your-credentials.json --definitions=3
 ```
 
 ### Key Commands
 
 - **Enter**: Submit your spelling
 - **Ctrl+R**: Repeat the current word
-- **Ctrl+H**: Hear what you've typed so far
 - **Ctrl+C/Ctrl+D/Esc**: Exit the application
 
 ## Configuration
@@ -74,14 +69,12 @@ GoSpell accepts the following command-line flags:
 | Flag | Short | Description |
 |------|-------|-------------|
 | `--credentials` | `-c` | Path to Google Cloud credentials JSON file (required) |
-| `--definitions` | `-d` | Number of definitions to display (default: 1) |
 | `--help` | `-h` | Display help |
 
 ## Dependencies
 
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) - goated TUI framework
 - [Lip Gloss](https://github.com/charmbracelet/lipgloss) - Style definitions for TUI apps
-- [Babble](https://github.com/tjarratt/babble) - Word generation 
 - [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech) - TTS API
 - [Beep](https://github.com/gopxl/beep) - Audio playback 
 
