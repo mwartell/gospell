@@ -1,48 +1,35 @@
 package api
 
 import (
-	"bufio"
-	"embed"
-	"log"
+	_ "embed"
+	"hash/maphash"
 	"math/rand"
-	"time"
+	"strings"
 )
 
-// GetAcceptableWord returns a random word from the wordlist.
-func GetAcceptableWord() string {
-	return getRandomLineFromWordlist()
+//go:embed wordlist.txt
+var fileString string
+var file []string = splitWords(fileString)
+var rng = NewRand()
+
+// RandomWord returns a random word from the wordlist.
+func RandomWord() string {
+	randomNumber := rng.Intn(len(file))
+	return file[randomNumber]
 }
 
-//go:embed wordlist.txt
-var fs embed.FS
+// Rand64 returns a pseudo-random uint64. It can be used concurrently and is lock-free.
+// Effectively, it calls runtime.fastrand.
+func Rand64() uint64 {
+	return new(maphash.Hash).Sum64()
+}
 
-// From The Art of Computer Programming, Volume 2, Section 3.4.2, by Donald E. Knuth.
-// This is a reservoir sampling algorithm that picks a random line from a file.
-func getRandomLineFromWordlist() string {
-	file, err := fs.Open("wordlist.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+// NewRand returns a properly seeded *rand.Rand. It has *slightly* higher overhead than
+// Rand64 (as it has to allocate), but the resulting PRNG can be re-used to offset that cost.
+func NewRand() *rand.Rand {
+	return rand.New(rand.NewSource(int64(Rand64())))
+}
 
-	scanner := bufio.NewScanner(file)
-
-	randsource := rand.NewSource(time.Now().UnixNano())
-	randgenerator := rand.New(randsource)
-
-	lineNum := 1
-	var pick string
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Instead of 1 to N it's 0 to N-1
-		roll := randgenerator.Intn(lineNum)
-		if roll == 0 {
-			// We pick this line
-			pick = line
-		}
-
-		lineNum += 1
-	}
-
-	return pick
+func splitWords(wordlist string) []string {
+	return strings.Split(wordlist, "\n")
 }

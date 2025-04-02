@@ -81,7 +81,7 @@ func initialModel(credentialPath string, ctx context.Context) model {
 	ttsState.Ctx = ctx
 
 	// Get a random word and its definition.
-	word := api.GetAcceptableWord()
+	word := api.RandomWord()
 	return model{
 		textInput:       ti,
 		credentialPath:  credentialPath,
@@ -115,7 +115,7 @@ func (m *model) Init() tea.Cmd {
 // Command to generate a new word.
 func getNewWord(m *model) tea.Cmd {
 	return func() tea.Msg {
-		word := api.GetAcceptableWord()
+		word := api.RandomWord()
 		def := m.definitionState.GetDefinition(word)
 
 		// Play the word audio in a goroutine to avoid blocking.
@@ -213,8 +213,8 @@ func (m *model) submitWord() (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-    var foregroundColor lipgloss.Color = lipgloss.Color(1)
-    var backgroundColor lipgloss.Color = lipgloss.Color(1)
+    var foregroundColor lipgloss.Color = lipgloss.Color("#cfd6f1")
+    var backgroundColor lipgloss.Color = lipgloss.Color("#1e1e2d")
 
 	// Create a container style for the main content
 	inputContainer := lipgloss.NewStyle().
@@ -252,7 +252,7 @@ func (m model) View() string {
 	// Combine all elements with the container style
 	content := inputContainer.Render(
 		inputView + "\n" +
-			definitionText + "\n" +
+			definitionText + "\n\n" +
 			correctionText,
 	)
 

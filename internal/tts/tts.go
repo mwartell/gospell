@@ -3,6 +3,8 @@ package tts
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 
 	"log"
 	"time"
@@ -30,23 +32,20 @@ type audioMessage struct {
 // It checks if the audio for the word is already generated and stored in the audioMessage struct.
 // If the audio is already generated, it plays the audio directly without calling the API again.
 // If the audio is not generated, it calls the API to synthesize the speech and then plays the audio.
-func (t *TTS) SayWord() {
-	// call tts api
-	if t.audio.Word == t.Word {
-		// no need to call the API again, play the audio
-		t.PlayAudio()
-	} else {
+
+func (t *TTS) SayWord() error {
+	// call tts api only if not already done
+	if t.audio.Word != t.Word {
 		audioContent, err := t.synthesizeSpeech()
 		if err != nil {
-			log.Fatalf("Failed to synthesize speech: %v", err)
+			return errors.New(fmt.Sprintf("error synthesizing speech: %v", err))
 		}
-
 		t.audio.AudioContent = audioContent
 		t.audio.Word = t.Word
-
-		// play the audio
-		t.PlayAudio()
 	}
+	// play the audio
+	t.PlayAudio()
+	return nil
 }
 
 func (t *TTS) PlayAudio() {

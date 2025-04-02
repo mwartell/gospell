@@ -26,6 +26,5 @@ func CalculateWpm(word string, initialTime time.Time, finalTime time.Time) int {
 
 	numWords := float64(utf8.RuneCountInString(word)) / 5.0
 
-	wpm = int(numWords / elapsedMinutes)
-	return wpm
+    return int(numWords / elapsedMinutes)
 }
