@@ -17,16 +17,20 @@ func TestGetRandomLineFromWordlist(t *testing.T) {
 	}
 }
 
-func BenchmarkRandomWord(b *testing.B) {
-	var word string
-	for b.Loop() {
-		word = RandomWord()
-	}
-	b.Logf("Random word: %v", word)
-}
-
 func BenchmarkSplitWords(b *testing.B) {
 	for b.Loop() {
 		_ = splitWords(wordlist)
+	}
+}
+
+func BenchmarkRandomWord(b *testing.B) {
+	for b.Loop() {
+		_ = RandomWord()
+	}
+}
+
+func BenchmarkSafeRandomWord(b *testing.B) {
+	for b.Loop() {
+		_ = SafeRandomWord()
 	}
 }
