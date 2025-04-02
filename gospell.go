@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/jharlan-hash/gospell/internal/api"
@@ -23,7 +22,7 @@ import (
 )
 
 func main() {
-	credentialFlag := getopt.StringLong("credentials", 'c', "", "Path to Google Cloud credentials JSON file")
+	credentialFlag := getopt.StringLong("credentials", 'c', "", "Path to Google Cloud credentials JSON file (optional)")
 	helpFlag := getopt.BoolLong("help", 'h', "display help")
 
 	getopt.Parse()
@@ -54,17 +53,18 @@ type incorrectMessage struct{}
 
 type model struct {
 	textInput       textinput.Model
+	streak          int
+	correction      string
 	definition      string
 	credentialPath  string
 	word            string
 	initialTime     time.Time
 	finalTime       time.Time
-	streak          int
-	correction      string
 	width           int
 	height          int
 	definitionState *definition.State
 	ttsState        *tts.TTS
+	borderColor     lipgloss.Color
 }
 
 // initialModel initializes the model with a text input field and a random word.
@@ -95,16 +95,16 @@ func initialModel(credentialPath string, ctx context.Context) model {
 
 func (m *model) Init() tea.Cmd {
 	if m.credentialPath != "" {
+		// User provided custom credentials file
 		client, err := texttospeech.NewClient(m.ttsState.Ctx, option.WithCredentialsFile(m.credentialPath))
 		if err != nil {
 			tea.ExitAltScreen()
 			log.Fatal("Bad credentials file - make sure the path is correct\n" + err.Error())
 		}
-
 		m.ttsState.Client = client
 	} else {
 		tea.ExitAltScreen()
-		log.Fatal("No credentials file provided")
+		log.Fatal("Please provide a Google Cloud credentials file.")
 	}
 
 	m.ttsState.Word = m.word
@@ -150,16 +150,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.submitWord()
 		case tea.KeyCtrlC, tea.KeyEsc, tea.KeyCtrlD: // exit.
 			return m, tea.Quit
-
 		case tea.KeyCtrlR: // repeat word.
 			m.ttsState.Word = m.word
 			go m.ttsState.SayWord()
 			return m, nil
-
 		case tea.KeyDown:
 			// If the user presses down, we want to get the next definition.
 			m.definition = m.definitionState.NextDefinition()
-
 		case tea.KeyUp:
 			// If the user presses up, we want to get the previous definition.
 			m.definition = m.definitionState.PrevDefinition()
@@ -169,30 +166,23 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
+
 	case correctMessage:
+        var correctColor lipgloss.Color = lipgloss.Color("#66ac5a") // og
 		m.streak++
 		m.definition = wordwrap.String(m.definition, 100)
+		m.borderColor = correctColor // Set border color to green for correct answer
 
-		temparr := strings.Split(m.definition, "\n")
-		for index := range temparr {
-			temparr[index] = "\033[32m" + strings.TrimSpace(temparr[index]) + "\033[0m"
-		}
-
-		m.definition = strings.Join(temparr, "\n")
-		m.correction = "\n"
+		m.correction = ""
 		return m, getNewWord(m)
 
 	case incorrectMessage:
+        var incorrectColor lipgloss.Color = lipgloss.Color("#ED4337") // og
 		m.streak = 0
 		m.definition = wordwrap.String(m.definition, 100)
+		m.borderColor = incorrectColor // Set border color to red for incorrect answer
 
-		temparr := strings.Split(m.definition, "\n")
-		for index := range temparr {
-			temparr[index] = "\033[31m" + strings.TrimSpace(temparr[index]) + "\033[0m"
-		}
-
-		m.definition = strings.Join(temparr, "\n")
-		m.correction = fmt.Sprintf("\nCorrect spelling: %s", m.word)
+		m.correction = fmt.Sprintf("Correct spelling: %s", m.word)
 		return m, getNewWord(m)
 	}
 
@@ -223,23 +213,32 @@ func (m *model) submitWord() (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	// Create a container style that will be centered as a whole.
-	containerStyle := lipgloss.NewStyle().Padding(1, 2)
-	width := 100
+    var foregroundColor lipgloss.Color = lipgloss.Color(1)
+    var backgroundColor lipgloss.Color = lipgloss.Color(1)
 
-	// Center the welcome text within the container.
-	welcomeText := lipgloss.NewStyle().
-		Align(lipgloss.Center).
-		Width(width). // Set a fixed width for the centered elements.
-		Render("Welcome to gospell!")
+	// Create a container style for the main content
+	inputContainer := lipgloss.NewStyle().
+		Padding(1, 2).
+		Margin(1).
+        Foreground(lipgloss.Color(foregroundColor)).
+        Background(lipgloss.Color(backgroundColor)).
+        BorderForeground(lipgloss.Color(foregroundColor)).
+        BorderBackground(lipgloss.Color(backgroundColor)).
+		Border(lipgloss.RoundedBorder()).
+		Align(lipgloss.Center, lipgloss.Center)
 
-	// Center the input field within the container.
+	width := 75
+
+	// Center the input field within the container
 	inputView := lipgloss.NewStyle().
-		Align(lipgloss.Center).
-		Width(width).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(m.borderColor).
+        Foreground(lipgloss.Color(foregroundColor)).
+        Background(lipgloss.Color(backgroundColor)).
+        BorderBackground(lipgloss.Color(backgroundColor)).
 		Render(m.textInput.View())
 
-		// Center the definition but keep it within the container's width.
+	// Center the definition but keep it within the container's width
 	definitionText := lipgloss.NewStyle().
 		Align(lipgloss.Center).
 		Width(width).
@@ -250,26 +249,44 @@ func (m model) View() string {
 		Width(width).
 		Render(m.correction)
 
-	wpmText := lipgloss.NewStyle().
-		Align(lipgloss.Center).
-		Width(width).
-		Render(fmt.Sprintf("WPM: %d", wpm.CalculateWpm(m.textInput.Value(), m.initialTime, m.finalTime)))
-
-	// Center the streak counter.
-	streakText := lipgloss.NewStyle().
-		Align(lipgloss.Center).
-		Width(width).
-		Render("Streak: " + fmt.Sprintf("%d", m.streak))
-
-	// Combine all elements with the container style.
-	content := containerStyle.Render(
-		welcomeText + "\n\n" +
-			wpmText + "\n" +
-			inputView + "\n" +
+	// Combine all elements with the container style
+	content := inputContainer.Render(
+		inputView + "\n" +
 			definitionText + "\n" +
-			correctionText + "\n" +
-			streakText,
+			correctionText,
 	)
 
-	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+	// Style for the status bar at the bottom
+	renderString := fmt.Sprintf(
+		"Gospell: Press 'ESC' / 'CtrlC' to exit, 'CtrlR' to repeat word, ↑/↓ to navigate definitions | Current WPM: %d | Streak: %d",
+		wpm.CalculateWpm(m.textInput.Value(), m.initialTime, m.finalTime),
+		m.streak,
+	)
+
+	statusBar := lipgloss.NewStyle().
+		Background(lipgloss.Color("#cfd6f1")).
+		Foreground(lipgloss.Color("#1e1e2d")).
+		Width(m.width). // Make it full width
+		Align(lipgloss.Left).
+		Render(renderString)
+
+	// Use Place for the main content, positioning it in the center
+	mainContent := lipgloss.Place(
+		m.width,
+		m.height-lipgloss.Height(statusBar), // leave room for status bar
+		lipgloss.Center,
+		lipgloss.Center,
+		content,
+	)
+
+	// Build the final view with the status bar at the bottom
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		mainContent,
+		lipgloss.PlaceHorizontal(
+			m.width,
+			lipgloss.Left,
+			statusBar,
+		),
+	)
 }
