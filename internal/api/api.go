@@ -1,50 +1,22 @@
 package api
 
 import (
-	"bufio"
-	"embed"
-	"log"
+	_ "embed"
 	"math/rand"
-	"time"
+	"strings"
 )
 
-// GetAcceptableWord returns a random word from the wordlist.
-func GetAcceptableWord() string {
-	var timeBetweenWords = 100 * time.Millisecond
-	time.Sleep(timeBetweenWords) // Sleep to allow time for the user to see feedback
-	return getRandomLineFromWordlist()
+//go:embed wordlist.txt
+var wordlist string
+
+var words = splitWords(wordlist)
+
+func splitWords(wordlist string) []string {
+	return strings.Split(wordlist, "\n")
 }
 
-//go:embed wordlist.txt
-var fs embed.FS
-
-// From The Art of Computer Programming, Volume 2, Section 3.4.2, by Donald E. Knuth.
-// This is a reservoir sampling algorithm that picks a random line from a file.
-func getRandomLineFromWordlist() string {
-	file, err := fs.Open("wordlist.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	randsource := rand.NewSource(time.Now().UnixNano())
-	randgenerator := rand.New(randsource)
-
-	lineNum := 1
-	var pick string
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Instead of 1 to N it's 0 to N-1
-		roll := randgenerator.Intn(lineNum)
-		if roll == 0 {
-			// We pick this line
-			pick = line
-		}
-
-		lineNum += 1
-	}
-
-	return pick
+// RandomWord returns a random word from the embedded word list
+func RandomWord() string {
+	i := rand.Intn(len(words))
+	return words[i]
 }

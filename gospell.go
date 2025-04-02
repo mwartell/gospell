@@ -81,7 +81,7 @@ func initialModel(credentialPath string, ctx context.Context) model {
 	ttsState.Ctx = ctx
 
 	// Get a random word and its definition.
-	word := api.GetAcceptableWord()
+	word := api.RandomWord()
 	return model{
 		textInput:       ti,
 		credentialPath:  credentialPath,
@@ -115,7 +115,7 @@ func (m *model) Init() tea.Cmd {
 // Command to generate a new word.
 func getNewWord(m *model) tea.Cmd {
 	return func() tea.Msg {
-		word := api.GetAcceptableWord()
+		word := api.RandomWord()
 		def := m.definitionState.GetDefinition(word)
 
 		// Play the word audio in a goroutine to avoid blocking.
